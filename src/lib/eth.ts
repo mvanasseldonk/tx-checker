@@ -7,6 +7,7 @@ import {
   http,
   TransactionNotFoundError,
   TransactionReceiptNotFoundError,
+  type Address,
   type Hash,
   type Hex,
   type PublicClient,
@@ -14,10 +15,18 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { mainnet } from "viem/chains";
+import { methodName } from "./method";
 import { contractName } from "./names";
 import { eurPrice } from "./prices";
 import { describeRevert } from "./revert";
-import type { TxStatus, TxValue } from "./status";
+import {
+  detailAmount,
+  type TxAmount,
+  type TxDetails,
+  type TxRecipient,
+  type TxStatus,
+  type TxValue,
+} from "./status";
 
 const SECONDS_PER_SLOT = 12;
 const SLOTS_PER_EPOCH = 32;
@@ -50,27 +59,53 @@ export async function lookupEth(hash: Hash): Promise<TxStatus> {
     client.getBlock({ blockTag: "finalized" }),
   ]);
   const at = Number(block.timestamp);
+  const ethEur = eurPrice("ethereum", at);
 
   if (receipt.status === "reverted") {
-    const [value, reason, ethEur] = await Promise.all([
-      describeValue(client, tx, at),
+    const [described, reason, fee] = await Promise.all([
+      describeValue(client, tx, at, ethEur),
       revertReason(client, tx, receipt),
-      eurPrice("ethereum", at),
+      feePaid(receipt, ethEur),
     ]);
-    const fee = Number(formatEther(receipt.gasUsed * receipt.effectiveGasPrice));
-    return { kind: "failed", value, reason, feeEur: ethEur === null ? null : fee * ethEur };
+    const details = await detailsOf(tx, described, fee, at, ethEur);
+    return { kind: "failed", value: described.value, details, reason, feeEur: fee.eur };
   }
 
-  const value = await describeValue(client, tx, at);
-  if (receipt.blockNumber <= finalized.number) return { kind: "final", value };
+  const [described, fee] = await Promise.all([
+    describeValue(client, tx, at, ethEur),
+    feePaid(receipt, ethEur),
+  ]);
+  const { value } = described;
+  const details = await detailsOf(tx, described, fee, at, ethEur);
+  if (receipt.blockNumber <= finalized.number) return { kind: "final", value, details };
   const finalAt = finalizedAt(at);
   const now = Date.now() / 1000;
   return {
     kind: "included",
     value,
+    details,
     progress: Math.min(1, Math.max(0, (now - at) / (finalAt - at))),
     secondsToFinal: Math.max(1, finalAt - now),
   };
+}
+
+type Described = { value: TxValue; to: TxRecipient | null };
+
+/** The gas the receipt says was paid, in ETH and euros. */
+async function feePaid(receipt: TransactionReceipt, ethEur: Promise<number | null>): Promise<TxAmount> {
+  const amount = Number(formatEther(receipt.gasUsed * receipt.effectiveGasPrice));
+  const price = await ethEur;
+  return { amount, symbol: "ETH", eur: price === null ? null : amount * price };
+}
+
+async function detailsOf(
+  tx: Transaction,
+  { value, to }: Described,
+  fee: TxAmount | null,
+  time: number | null,
+  ethEur: Promise<number | null>,
+): Promise<TxDetails> {
+  return { from: tx.from, to, amount: detailAmount(value, "ETH", await ethEur), fee, time };
 }
 
 /**
@@ -84,11 +119,13 @@ function finalizedAt(blockTime: number): number {
   return BEACON_GENESIS + (nextEpoch + 2) * epochSeconds;
 }
 
+// No fee to show yet: gas is only charged once the transaction is in a block.
 async function pending(client: PublicClient, tx: Transaction): Promise<TxStatus> {
-  const [latest, confirmedNonce, value] = await Promise.all([
+  const ethEur = eurPrice("ethereum", null);
+  const [latest, confirmedNonce, described] = await Promise.all([
     client.getBlock({ blockTag: "latest" }),
     client.getTransactionCount({ address: tx.from, blockTag: "latest" }),
-    describeValue(client, tx, null),
+    describeValue(client, tx, null, ethEur),
   ]);
   const maxFee = tx.maxFeePerGas ?? tx.gasPrice ?? 0n;
   const cause =
@@ -97,43 +134,55 @@ async function pending(client: PublicClient, tx: Transaction): Promise<TxStatus>
       : latest.baseFeePerGas != null && maxFee < latest.baseFeePerGas
         ? "fee"
         : null;
-  return { kind: "pending", value, cause };
+  const details = await detailsOf(tx, described, null, null, ethEur);
+  return { kind: "pending", value: described.value, details, cause };
 }
 
-/** An ETH or ERC-20 transfer as an amount, anything else as a contract call. */
+/**
+ * An ETH or ERC-20 transfer as an amount, anything else as a contract call. Also who it goes to:
+ * the recipient of a transfer, the contract of a call.
+ */
 async function describeValue(
   client: PublicClient,
   tx: Transaction,
   at: number | null,
-): Promise<TxValue> {
+  ethEur: Promise<number | null>,
+): Promise<Described> {
   if (tx.input === "0x" || !tx.to) {
     const amount = Number(formatEther(tx.value));
-    const price = await eurPrice("ethereum", at);
-    return { kind: "amount", amount, symbol: "ETH", eur: price === null ? null : amount * price };
+    const price = await ethEur;
+    return {
+      value: { kind: "amount", amount, symbol: "ETH", eur: price === null ? null : amount * price },
+      to: tx.to && { address: tx.to, name: null, method: null },
+    };
   }
   const token = await tokenTransfer(client, tx);
   if (token) {
     const price = await eurPrice({ platform: "ethereum", address: tx.to }, at);
-    return { ...token, kind: "amount", eur: price === null ? null : token.amount * price };
+    const { to, ...transfer } = token;
+    return {
+      value: { ...transfer, kind: "amount", eur: price === null ? null : token.amount * price },
+      to: { address: to, name: null, method: null },
+    };
   }
+  const name = await contractName(tx.to);
   return {
-    kind: "call",
-    name: await contractName(tx.to),
-    address: tx.to,
-    sent: Number(formatEther(tx.value)),
+    value: { kind: "call", name, address: tx.to, sent: Number(formatEther(tx.value)) },
+    to: { address: tx.to, name, method: methodName(tx.input) },
   };
 }
 
 async function tokenTransfer(
   client: PublicClient,
   tx: Transaction,
-): Promise<{ amount: number; symbol: string } | null> {
+): Promise<{ amount: number; symbol: string; to: Address } | null> {
   if (!tx.to) return null;
   let raw: bigint;
+  let to: Address;
   try {
     const call = decodeFunctionData({ abi: erc20Abi, data: tx.input });
-    if (call.functionName === "transfer") raw = call.args[1];
-    else if (call.functionName === "transferFrom") raw = call.args[2];
+    if (call.functionName === "transfer") [to, raw] = call.args;
+    else if (call.functionName === "transferFrom") [, to, raw] = call.args;
     else return null;
   } catch {
     return null;
@@ -146,7 +195,7 @@ async function tokenTransfer(
       ],
       allowFailure: false,
     });
-    return { amount: Number(formatUnits(raw, decimals)), symbol };
+    return { amount: Number(formatUnits(raw, decimals)), symbol, to };
   } catch {
     // Not a standard ERC-20 token after all.
     return null;
