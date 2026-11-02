@@ -1,6 +1,8 @@
-import type { EthStatus, EthValue } from "@/lib/eth";
-import { formatAmount, formatEur, shortAddress } from "@/lib/format";
+import type { Chain } from "@/lib/detect";
+import { formatAmount, formatEur, formatWait, shortAddress } from "@/lib/format";
+import type { TxStatus, TxValue } from "@/lib/status";
 import { Frame } from "./Frame";
+import { Heading } from "./Heading";
 import { LockIcon } from "./icons";
 import { KeepChecking } from "./KeepChecking";
 import { Disc, Ring } from "./StatusCircle";
@@ -10,54 +12,80 @@ const GREEN = "#0B6B45";
 const AMBER = "#B86A00";
 const RED = "#A3231B";
 
+const NATIVE: Record<Chain, string> = { eth: "ETH", sol: "SOL" };
+// Seconds between lookups: one block on each chain.
+const BLOCK_SECONDS: Record<Chain, number> = { eth: 12, sol: 2 };
+
+// Neither chain has a transaction yet: how long to keep looking, and what to say meanwhile.
+const NOT_FOUND = {
+  eth: {
+    seconds: 120,
+    looking: { word: "Not found", line: "Other chain? We only do ETH and SOL" },
+    stopped: { word: "Not found", line: "Other chain? We only do ETH and SOL" },
+  },
+  // Solana has no queue: a transaction that never lands expires with its blockhash.
+  sol: {
+    seconds: 90,
+    looking: { word: "Not seen yet", line: "Expires on its own · nothing charged" },
+    stopped: { word: "Not found", line: "Expired · nothing charged" },
+  },
+};
+
 const PENDING_CAUSE = {
   fee: "Fee too low · speed up in your wallet",
   nonce: "Waiting for an earlier transaction",
 };
 
 /** One status circle, one status word and at most one line. */
-export function EthResult({ status }: { status: EthStatus }) {
+export function TxResult({ chain, status }: { chain: Chain; status: TxStatus }) {
+  if (status.kind === "notFound") {
+    return (
+      <Frame chain={chain} pasteAgain>
+        <StillLooking refreshSeconds={BLOCK_SECONDS[chain]} {...NOT_FOUND[chain]} />
+      </Frame>
+    );
+  }
   return (
-    <Frame chain="eth" pasteAgain>
-      <Circle status={status} />
+    <Frame chain={chain} pasteAgain>
+      <Circle chain={chain} status={status} />
       <Verdict status={status} />
-      {(status.kind === "included" || status.kind === "pending") && <KeepChecking />}
+      {(status.kind === "included" || status.kind === "pending") && (
+        <KeepChecking seconds={BLOCK_SECONDS[chain]} />
+      )}
     </Frame>
   );
 }
 
-function Circle({ status }: { status: EthStatus }) {
+function Circle({ chain, status }: { chain: Chain; status: Exclude<TxStatus, { kind: "notFound" }> }) {
   switch (status.kind) {
     case "final":
       return (
         <Disc color={GREEN} shadow="rgba(11,107,69,0.5)">
-          <Value value={status.value} onDisc />
+          <Value chain={chain} value={status.value} onDisc />
         </Disc>
       );
     case "included":
       return (
         <Ring color={GREEN} track="rgba(11,107,69,0.15)" progress={Math.max(0.04, status.progress)}>
-          <Value value={status.value} />
+          <Value chain={chain} value={status.value} />
         </Ring>
       );
     case "pending":
       return (
         <Ring color={AMBER} track="rgba(184,106,0,0.15)" progress={0.11}>
-          <Value value={status.value} />
+          <Value chain={chain} value={status.value} />
         </Ring>
       );
     case "failed":
       return (
         <Disc color={RED} shadow="rgba(163,35,27,0.5)">
-          <Value value={status.value} onDisc notSent />
+          <Value chain={chain} value={status.value} onDisc notSent />
         </Disc>
       );
-    case "notFound":
-      return <StillLooking />;
   }
 }
 
-function Verdict({ status }: { status: EthStatus }) {
+function Verdict({ status }: { status: Exclude<TxStatus, { kind: "notFound" }> }) {
   switch (status.kind) {
     case "final":
       return (
@@ -71,7 +99,7 @@ function Verdict({ status }: { status: EthStatus }) {
     case "included":
       return (
         <Heading word="Success" color="text-success">
-          Final in ~{status.minutesToFinal} min
+          Final in {formatWait(status.secondsToFinal)}
         </Heading>
       );
     case "pending":
@@ -87,26 +115,21 @@ function Verdict({ status }: { status: EthStatus }) {
           {status.feeEur !== null && ` · ${formatEur(status.feeEur)} fee paid`}
         </Heading>
       );
-    case "notFound":
-      return (
-        <Heading word="Not found" color="text-gone">
-          Other chain? We only do ETH and SOL
-        </Heading>
-      );
   }
 }
 
-function Heading({ word, color, children }: { word: string; color: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      <h1 className={`text-[40px] leading-none font-semibold tracking-[-0.03em] ${color}`}>{word}</h1>
-      <p className="text-[15px] text-balance text-muted">{children}</p>
-    </div>
-  );
-}
-
-/** The amount and its euro value, or the contract and the ETH sent to it. */
-function Value({ value, onDisc = false, notSent = false }: { value: EthValue; onDisc?: boolean; notSent?: boolean }) {
+/** The amount and its euro value, or the contract or program and the coin sent to it. */
+function Value({
+  chain,
+  value,
+  onDisc = false,
+  notSent = false,
+}: {
+  chain: Chain;
+  value: TxValue;
+  onDisc?: boolean;
+  notSent?: boolean;
+}) {
   const main =
     value.kind === "amount"
       ? `${formatAmount(value.amount)} ${value.symbol}`
@@ -115,7 +138,7 @@ function Value({ value, onDisc = false, notSent = false }: { value: EthValue; on
     ? "not sent"
     : value.kind === "amount"
       ? value.eur !== null && formatEur(value.eur)
-      : value.ethSent > 0 && `${formatAmount(value.ethSent)} ETH sent`;
+      : value.sent > 0 && `${formatAmount(value.sent)} ${NATIVE[chain]} sent`;
   const isAddress = value.kind === "call" && !value.name;
   return (
     <>

@@ -2,34 +2,50 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Heading } from "./Heading";
 import { Ring } from "./StatusCircle";
 
-const LOOK_SECONDS = 120;
-const REFRESH_SECONDS = 12;
+type Verdict = { word: string; line: string };
 
-/** A grey ring counting down two minutes while it checks again every block. */
-export function StillLooking() {
+/** A grey ring counting down while it checks again every block, then the verdict once it stops. */
+export function StillLooking({
+  seconds,
+  refreshSeconds,
+  looking,
+  stopped,
+}: {
+  seconds: number;
+  refreshSeconds: number;
+  looking: Verdict;
+  stopped: Verdict;
+}) {
   const router = useRouter();
-  const [secondsLeft, setSecondsLeft] = useState(LOOK_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(seconds);
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
     const timer = setTimeout(() => {
       const next = secondsLeft - 1;
       setSecondsLeft(next);
-      if (next > 0 && (LOOK_SECONDS - next) % REFRESH_SECONDS === 0) router.refresh();
+      if (next > 0 && (seconds - next) % refreshSeconds === 0) router.refresh();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [secondsLeft, router]);
+  }, [secondsLeft, seconds, refreshSeconds, router]);
 
   const minutes = Math.floor(secondsLeft / 60);
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  const rest = String(secondsLeft % 60).padStart(2, "0");
+  const verdict = secondsLeft > 0 ? looking : stopped;
   return (
-    <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={secondsLeft / LOOK_SECONDS}>
-      <span className="text-[32px] font-medium tracking-[-0.02em] tabular-nums">
-        {minutes}:{seconds}
-      </span>
-      <span className="text-[15px] text-muted">{secondsLeft > 0 ? "still looking" : "stopped looking"}</span>
-    </Ring>
+    <>
+      <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={secondsLeft / seconds}>
+        <span className="text-[32px] font-medium tracking-[-0.02em] tabular-nums">
+          {minutes}:{rest}
+        </span>
+        <span className="text-[15px] text-muted">{secondsLeft > 0 ? "still looking" : "stopped looking"}</span>
+      </Ring>
+      <Heading word={verdict.word} color="text-gone">
+        {verdict.line}
+      </Heading>
+    </>
   );
 }

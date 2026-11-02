@@ -3,11 +3,13 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import type { Hash } from "viem";
 import { Checking } from "@/components/Checking";
-import { EthResult } from "@/components/EthResult";
 import { PasteScreen } from "@/components/PasteScreen";
+import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
-import { detectTransaction } from "@/lib/detect";
+import { detectTransaction, type Chain } from "@/lib/detect";
 import { lookupEth } from "@/lib/eth";
+import { lookupSol } from "@/lib/sol";
+import type { TxStatus } from "@/lib/status";
 
 export default function TxPage({ params }: PageProps<"/tx/[id]">) {
   return (
@@ -22,22 +24,25 @@ export default function TxPage({ params }: PageProps<"/tx/[id]">) {
 function Transaction({ id }: { id: string }) {
   const detection = detectTransaction(id);
   if (!detection.ok) return <PasteScreen initialInvalid />;
-  // S3 replaces this with the status of a Solana transaction.
-  if (detection.chain === "sol") return <Checking chain="sol" id={detection.id} />;
   return (
-    <Suspense fallback={<Checking chain="eth" id={detection.id} />}>
-      <EthTransaction hash={detection.id as Hash} />
+    <Suspense fallback={<Checking chain={detection.chain} id={detection.id} />}>
+      <LiveStatus chain={detection.chain} id={detection.id} />
     </Suspense>
   );
 }
 
-async function EthTransaction({ hash }: { hash: Hash }) {
+const LOOKUP: Record<Chain, (id: string) => Promise<TxStatus>> = {
+  eth: (id) => lookupEth(id as Hash),
+  sol: lookupSol,
+};
+
+async function LiveStatus({ chain, id }: { chain: Chain; id: string }) {
   // A status is live data: look it up per request, never in a prerender that gets cached.
   await connection();
-  const status = await lookupEth(hash).catch((error: unknown) => {
+  const status = await LOOKUP[chain](id).catch((error: unknown) => {
     unstable_rethrow(error);
-    console.error(`Looking up ${hash} failed`, error);
+    console.error(`Looking up ${id} failed`, error);
     return null;
   });
-  return status ? <EthResult status={status} /> : <Unavailable chain="eth" />;
+  return status ? <TxResult chain={chain} status={status} /> : <Unavailable chain={chain} />;
 }

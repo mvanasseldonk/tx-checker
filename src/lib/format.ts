@@ -22,3 +22,8 @@ export function formatEur(eur: number): string {
 export function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
+
+/** Time left as shown under the status word: "~13 s", "~14 min". */
+export function formatWait(seconds: number): string {
+  return seconds < 60 ? `~${Math.ceil(seconds)} s` : `~${Math.ceil(seconds / 60)} min`;
+}

@@ -1,7 +1,7 @@
 import { cacheLife } from "next/cache";
 
-/** "ethereum" for ETH itself, or an ERC-20 contract address. */
-export type Coin = "ethereum" | `0x${string}`;
+/** A chain's own coin, or a token on it by contract address (ETH) or mint (SOL). */
+export type Coin = "ethereum" | "solana" | { platform: "ethereum" | "solana"; address: string };
 
 const API = "https://api.coingecko.com/api/v3";
 const TIMEOUT_MS = 2500;
@@ -37,23 +37,27 @@ async function get(path: string): Promise<unknown> {
 async function currentPrice(coin: Coin): Promise<number | null> {
   "use cache";
   cacheLife("minutes");
-  if (coin === "ethereum") {
-    const body = (await get("/simple/price?ids=ethereum&vs_currencies=eur")) as {
-      ethereum?: { eur?: number };
-    } | null;
-    return body?.ethereum?.eur ?? null;
+  if (typeof coin === "string") {
+    const body = (await get(`/simple/price?ids=${coin}&vs_currencies=eur`)) as Record<
+      string,
+      { eur?: number }
+    > | null;
+    return body?.[coin]?.eur ?? null;
   }
   const body = (await get(
-    `/simple/token_price/ethereum?contract_addresses=${coin}&vs_currencies=eur`,
+    `/simple/token_price/${coin.platform}?contract_addresses=${coin.address}&vs_currencies=eur`,
   )) as Record<string, { eur?: number }> | null;
-  return body?.[coin.toLowerCase()]?.eur ?? null;
+  // CoinGecko lowercases Ethereum addresses but keeps the case of Solana mints.
+  const key = Object.keys(body ?? {}).find((k) => k.toLowerCase() === coin.address.toLowerCase());
+  return key ? (body?.[key]?.eur ?? null) : null;
 }
 
 /** The price closest to `at`, from CoinGecko's hourly history around it. */
 async function pastPrice(coin: Coin, at: number): Promise<number | null> {
   "use cache";
   cacheLife("max");
-  const base = coin === "ethereum" ? "/coins/ethereum" : `/coins/ethereum/contract/${coin}`;
+  const base =
+    typeof coin === "string" ? `/coins/${coin}` : `/coins/${coin.platform}/contract/${coin.address}`;
   const body = (await get(
     `${base}/market_chart/range?vs_currency=eur&from=${at - 3600}&to=${at + 3600}`,
   )) as { prices?: [number, number][] } | null;
