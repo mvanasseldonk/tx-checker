@@ -38,7 +38,7 @@ const PENDING_CAUSE = {
 };
 
 /** One status circle, one status word and at most one line. */
-export function TxResult({ chain, status }: { chain: Chain; status: TxStatus }) {
+export function TxResult({ chain, id, status }: { chain: Chain; id: string; status: TxStatus }) {
   if (status.kind === "notFound") {
     return (
       <Frame chain={chain} pasteAgain>
@@ -50,7 +50,7 @@ export function TxResult({ chain, status }: { chain: Chain; status: TxStatus }) 
     <Frame chain={chain} pasteAgain>
       <Circle chain={chain} status={status} />
       <Verdict status={status} />
-      <DetailsSheet details={status.details} notSent={status.kind === "failed"} />
+      <DetailsSheet chain={chain} id={id} details={status.details} notSent={status.kind === "failed"} />
       {(status.kind === "included" || status.kind === "pending") && (
         <KeepChecking seconds={BLOCK_SECONDS[chain]} />
       )}
