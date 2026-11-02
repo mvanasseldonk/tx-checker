@@ -6,6 +6,9 @@
   --color-muted: #5b6472;
   --color-hint: #8a919c;
   --color-danger: #a3231b;
+  --color-success: #0b6b45;
+  --color-pending: #8a4f00;
+  --color-gone: #3f4855;
 }
 
 @theme inline {
