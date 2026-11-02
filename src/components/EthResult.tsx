@@ -2,6 +2,7 @@ import type { EthStatus, EthValue } from "@/lib/eth";
 import { formatAmount, formatEur, shortAddress } from "@/lib/format";
 import { Frame } from "./Frame";
 import { LockIcon } from "./icons";
+import { KeepChecking } from "./KeepChecking";
 import { Disc, Ring } from "./StatusCircle";
 import { StillLooking } from "./StillLooking";
 
@@ -20,6 +21,7 @@ export function EthResult({ status }: { status: EthStatus }) {
     <Frame chain="eth" pasteAgain>
       <Circle status={status} />
       <Verdict status={status} />
+      {(status.kind === "included" || status.kind === "pending") && <KeepChecking />}
     </Frame>
   );
 }
