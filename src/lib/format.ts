@@ -27,3 +27,15 @@ export function shortAddress(address: string): string {
 export function formatWait(seconds: number): string {
   return seconds < 60 ? `~${Math.ceil(seconds)} s` : `~${Math.ceil(seconds / 60)} min`;
 }
+
+/** When it happened, in the viewer's own time zone: "2 Nov, 14:32". */
+export function formatTime(unixSeconds: number, timeZone?: string): string {
+  return new Date(unixSeconds * 1000).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  });
+}

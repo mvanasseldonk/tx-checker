@@ -2,7 +2,13 @@ import { cacheLife } from "next/cache";
 import { shortAddress } from "./format";
 import { eurPrice } from "./prices";
 import { describeSolError } from "./solErrors";
-import type { TxStatus, TxValue } from "./status";
+import {
+  detailAmount,
+  type TxDetails,
+  type TxRecipient,
+  type TxStatus,
+  type TxValue,
+} from "./status";
 
 const LAMPORTS_PER_SOL = 1e9;
 // Mainnet finalizes within about a second of confirming, so not-yet-final is short-lived.
@@ -69,7 +75,12 @@ type Instruction = {
   parsed?: { type?: string; info?: Record<string, unknown> } | string;
 };
 
-type TokenBalance = { accountIndex: number; mint: string; uiTokenAmount: { decimals: number } };
+type TokenBalance = {
+  accountIndex: number;
+  mint: string;
+  owner?: string;
+  uiTokenAmount: { decimals: number };
+};
 
 type ParsedTransaction = {
   blockTime: number | null;
@@ -78,6 +89,7 @@ type ParsedTransaction = {
     fee: number;
     logMessages: string[] | null;
     preTokenBalances: TokenBalance[] | null;
+    postTokenBalances: TokenBalance[] | null;
   };
   transaction: {
     message: {
@@ -130,30 +142,53 @@ export async function lookupSol(signature: string): Promise<TxStatus> {
   if (!tx) return { kind: "notFound" };
 
   const at = tx.blockTime;
+  const solEur = eurPrice("solana", at);
   const { instructions } = tx.transaction.message;
+  const [described, price] = await Promise.all([describeValue(tx, at, solEur), solEur]);
+  const { value } = described;
+  const details = detailsOf(tx, described, price);
+
   if (tx.meta.err) {
-    const [value, solEur] = await Promise.all([describeValue(tx, at), eurPrice("solana", at)]);
     const reason = describeSolError(
       tx.meta.err,
       tx.meta.logMessages ?? [],
       (index) => instructions[index]?.programId,
     );
-    const fee = tx.meta.fee / LAMPORTS_PER_SOL;
-    return { kind: "failed", value, reason, feeEur: solEur === null ? null : fee * solEur };
+    return { kind: "failed", value, details, reason, feeEur: details.fee?.eur ?? null };
   }
 
-  const value = await describeValue(tx, at);
-  if (status.confirmationStatus === "finalized") return { kind: "final", value };
+  if (status.confirmationStatus === "finalized") return { kind: "final", value, details };
   return {
     kind: "included",
     value,
+    details,
     progress: PROGRESS[status.confirmationStatus ?? "processed"],
     secondsToFinal: 1,
   };
 }
 
-/** A SOL or token transfer as an amount, anything else as a program call. */
-async function describeValue(tx: ParsedTransaction, at: number | null): Promise<TxValue> {
+type Described = { value: TxValue; to: TxRecipient };
+
+function detailsOf(tx: ParsedTransaction, { value, to }: Described, solEur: number | null): TxDetails {
+  const fee = tx.meta.fee / LAMPORTS_PER_SOL;
+  return {
+    from: tx.transaction.message.accountKeys[0].pubkey,
+    to,
+    amount: detailAmount(value, "SOL", solEur),
+    fee: { amount: fee, symbol: "SOL", eur: solEur === null ? null : fee * solEur },
+    time: tx.blockTime,
+  };
+}
+
+/**
+ * A SOL or token transfer as an amount, anything else as a program call. Also who it goes to:
+ * the recipient of a transfer, the program of a call.
+ */
+async function describeValue(
+  tx: ParsedTransaction,
+  at: number | null,
+  solEur: Promise<number | null>,
+): Promise<Described> {
   const { instructions, accountKeys } = tx.transaction.message;
   const signer = accountKeys[0]?.pubkey;
   const main = instructions.filter(
@@ -168,10 +203,15 @@ async function describeValue(tx: ParsedTransaction, at: number | null): Promise<
   const others = main.filter((ix) => !transfers.includes(ix));
   if (others.length === 0 && transfers.length > 0) {
     // A plain SOL transfer, maybe with a tip: the largest transfer is the one that matters.
-    const amount =
-      Math.max(...transfers.map((ix) => Number(info(ix).lamports ?? 0))) / LAMPORTS_PER_SOL;
-    const price = await eurPrice("solana", at);
-    return { kind: "amount", amount, symbol: "SOL", eur: price === null ? null : amount * price };
+    const largest = transfers.reduce((best, ix) =>
+      Number(info(ix).lamports ?? 0) > Number(info(best).lamports ?? 0) ? ix : best,
+    );
+    const amount = Number(info(largest).lamports ?? 0) / LAMPORTS_PER_SOL;
+    const price = await solEur;
+    return {
+      value: { kind: "amount", amount, symbol: "SOL", eur: price === null ? null : amount * price },
+      to: { address: String(info(largest).destination ?? SYSTEM), name: null, method: null },
+    };
   }
 
   // A token transfer, maybe among other token bookkeeping: the one the signer signed is it.
@@ -185,43 +225,61 @@ async function describeValue(tx: ParsedTransaction, at: number | null): Promise<
     if (token) {
       const [symbol, price] = await Promise.all([
         tokenSymbol(token.mint),
-        eurPrice(
-          token.mint === WRAPPED_SOL ? "solana" : { platform: "solana", address: token.mint },
-          at,
-        ),
+        token.mint === WRAPPED_SOL
+          ? solEur
+          : eurPrice({ platform: "solana", address: token.mint }, at),
       ]);
       return {
-        kind: "amount",
-        amount: token.amount,
-        symbol,
-        eur: price === null ? null : token.amount * price,
+        value: {
+          kind: "amount",
+          amount: token.amount,
+          symbol,
+          eur: price === null ? null : token.amount * price,
+        },
+        to: { address: token.recipient, name: null, method: null },
       };
     }
   }
 
   const program =
     others.find((ix) => !isTokenProgram(ix.programId))?.programId ?? others[0]?.programId ?? SYSTEM;
-  return { kind: "call", name: PROGRAMS[program] ?? null, address: program, sent };
+  const name = PROGRAMS[program] ?? null;
+  return {
+    value: { kind: "call", name, address: program, sent },
+    to: { address: program, name, method: null },
+  };
 }
 
 function tokenTransfer(
   tx: ParsedTransaction,
   ix: Instruction,
-): { mint: string; amount: number } | null {
+): { mint: string; amount: number; recipient: string } | null {
   const type = parsedType(ix);
   if (type !== "transfer" && type !== "transferChecked") return null;
   const data = info(ix);
+  const recipient = tokenOwner(tx, data.destination);
   if (type === "transferChecked") {
     const amount = (data.tokenAmount as { uiAmount?: number } | undefined)?.uiAmount;
     return typeof data.mint === "string" && typeof amount === "number"
-      ? { mint: data.mint, amount }
+      ? { mint: data.mint, amount, recipient }
       : null;
   }
   // A plain transfer doesn't name its mint: read it from the source account's balance.
   const index = tx.transaction.message.accountKeys.findIndex((key) => key.pubkey === data.source);
   const balance = tx.meta.preTokenBalances?.find((b) => b.accountIndex === index);
   if (!balance || typeof data.amount !== "string") return null;
-  return { mint: balance.mint, amount: Number(data.amount) / 10 ** balance.uiTokenAmount.decimals };
+  return {
+    mint: balance.mint,
+    amount: Number(data.amount) / 10 ** balance.uiTokenAmount.decimals,
+    recipient,
+  };
+}
+
+/** The wallet that owns a token account, falling back to the account itself. */
+function tokenOwner(tx: ParsedTransaction, account: unknown): string {
+  const index = tx.transaction.message.accountKeys.findIndex((key) => key.pubkey === account);
+  const balances = [...(tx.meta.postTokenBalances ?? []), ...(tx.meta.preTokenBalances ?? [])];
+  return balances.find((b) => b.accountIndex === index)?.owner ?? String(account);
 }
 
 function isTokenProgram(programId: string): boolean {
