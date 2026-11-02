@@ -44,5 +44,5 @@ async function LiveStatus({ chain, id }: { chain: Chain; id: string }) {
     console.error(`Looking up ${id} failed`, error);
     return null;
   });
-  return status ? <TxResult chain={chain} status={status} /> : <Unavailable chain={chain} />;
+  return status ? <TxResult chain={chain} id={id} status={status} /> : <Unavailable chain={chain} />;
 }

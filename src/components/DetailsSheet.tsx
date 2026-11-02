@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import type { Chain } from "@/lib/detect";
+import { explorerFor } from "@/lib/explorer";
 import { formatAmount, formatEur, formatTime, shortAddress } from "@/lib/format";
 import type { TxAmount, TxDetails } from "@/lib/status";
 import { CloseIcon, CopyIcon } from "./icons";
@@ -11,7 +13,17 @@ const CLOSE_DISTANCE = 100;
 const CLOSE_VELOCITY = 0.6;
 
 /** A "Details" button and the bottom sheet it opens over the result. */
-export function DetailsSheet({ details, notSent }: { details: TxDetails; notSent: boolean }) {
+export function DetailsSheet({
+  chain,
+  id,
+  details,
+  notSent,
+}: {
+  chain: Chain;
+  id: string;
+  details: TxDetails;
+  notSent: boolean;
+}) {
   const titleId = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const drag = useRef<{ y: number; time: number; dragging: boolean } | null>(null);
@@ -124,10 +136,32 @@ export function DetailsSheet({ details, notSent }: { details: TxDetails; notSent
             <dl className="touch-pan-y overflow-y-auto px-6 [@media(min-height:520px)]:touch-none">
               <Fields details={details} notSent={notSent} />
             </dl>
+            <ExplorerLink chain={chain} id={id} />
           </div>
         )}
       </dialog>
     </>
+  );
+}
+
+/** A way out to the full explorer page of this transaction, below the fields. */
+function ExplorerLink({ chain, id }: { chain: Chain; id: string }) {
+  const { name, url } = explorerFor(chain, id);
+  return (
+    <div className="px-6 pt-4">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-ink/15 text-[15px] font-medium text-ink active:bg-ground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        {name}
+        <span aria-hidden="true" className="ml-1">
+          ↗
+        </span>
+        <span className="sr-only">(opens in a new tab)</span>
+      </a>
+    </div>
   );
 }
 
