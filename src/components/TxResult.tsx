@@ -1,6 +1,7 @@
 import type { Chain } from "@/lib/detect";
 import { formatAmount, formatEur, formatWait, shortAddress } from "@/lib/format";
 import type { TxStatus, TxValue } from "@/lib/status";
+import { DetailsSheet } from "./DetailsSheet";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
 import { LockIcon } from "./icons";
@@ -49,6 +50,7 @@ export function TxResult({ chain, status }: { chain: Chain; status: TxStatus }) 
     <Frame chain={chain} pasteAgain>
       <Circle chain={chain} status={status} />
       <Verdict status={status} />
+      <DetailsSheet details={status.details} notSent={status.kind === "failed"} />
       {(status.kind === "included" || status.kind === "pending") && (
         <KeepChecking seconds={BLOCK_SECONDS[chain]} />
       )}
