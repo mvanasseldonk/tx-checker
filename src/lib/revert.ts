@@ -4,8 +4,8 @@ import {
   type Hex,
 } from "viem";
 
-const PRICE_MOVED = "Price moved more than you allowed";
-const NO_BALANCE = "Insufficient balance";
+export const PRICE_MOVED = "Price moved more than you allowed";
+export const NO_BALANCE = "Insufficient balance";
 const NO_ALLOWANCE = "Token not approved";
 const DEADLINE = "Deadline passed";
 
@@ -38,8 +38,8 @@ const EXECUTION_FAILED = toFunctionSelector("ExecutionFailed(uint256,bytes)");
 
 // Revert strings in plain language, first match wins.
 const MESSAGES: [RegExp, string][] = [
-  [/exceeds balance|insufficient (balance|funds)/i, NO_BALANCE],
-  [/too little received|insufficient_output_amount|too_little_received|slippage/i, PRICE_MOVED],
+  [/exceeds balance|insufficient (balance|funds|lamports)/i, NO_BALANCE],
+  [/too little received|insufficient_output_amount|too_little_received|slippage|below minimum/i, PRICE_MOVED],
   [/allowance/i, NO_ALLOWANCE],
   [/too old|expired|deadline/i, DEADLINE],
   [/^stf$|transfer_?from_?failed/i, "Token transfer failed"],
@@ -68,7 +68,8 @@ export function describeRevert(data: Hex | undefined): string | null {
   return CUSTOM_ERRORS[selector] ?? `Error ${selector}`;
 }
 
-function describeMessage(message: string): string | null {
+/** An error message in plain language when it is a known one, else shortened. */
+export function describeMessage(message: string): string | null {
   const trimmed = message.trim();
   if (!trimmed) return null;
   const known = MESSAGES.find(([pattern]) => pattern.test(trimmed));

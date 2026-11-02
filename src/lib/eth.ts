@@ -17,18 +17,7 @@ import { mainnet } from "viem/chains";
 import { contractName } from "./names";
 import { eurPrice } from "./prices";
 import { describeRevert } from "./revert";
-
-/** What the transaction moves, as shown in the circle. */
-export type EthValue =
-  | { kind: "amount"; amount: number; symbol: string; eur: number | null }
-  | { kind: "call"; name: string | null; address: string; ethSent: number };
-
-export type EthStatus =
-  | { kind: "final"; value: EthValue }
-  | { kind: "included"; value: EthValue; progress: number; minutesToFinal: number }
-  | { kind: "pending"; value: EthValue; cause: "fee" | "nonce" | null }
-  | { kind: "failed"; value: EthValue; reason: string | null; feeEur: number | null }
-  | { kind: "notFound" };
+import type { TxStatus, TxValue } from "./status";
 
 const SECONDS_PER_SLOT = 12;
 const SLOTS_PER_EPOCH = 32;
@@ -47,7 +36,7 @@ function ethClient(): PublicClient {
 }
 
 /** Looks up an Ethereum mainnet transaction and what to tell the user about it. */
-export async function lookupEth(hash: Hash): Promise<EthStatus> {
+export async function lookupEth(hash: Hash): Promise<TxStatus> {
   const client = ethClient();
   const [tx, receipt] = await Promise.all([
     client.getTransaction({ hash }).catch(nullIf(TransactionNotFoundError)),
@@ -80,7 +69,7 @@ export async function lookupEth(hash: Hash): Promise<EthStatus> {
     kind: "included",
     value,
     progress: Math.min(1, Math.max(0, (now - at) / (finalAt - at))),
-    minutesToFinal: Math.max(1, Math.ceil((finalAt - now) / 60)),
+    secondsToFinal: Math.max(1, finalAt - now),
   };
 }
 
@@ -95,7 +84,7 @@ function finalizedAt(blockTime: number): number {
   return BEACON_GENESIS + (nextEpoch + 2) * epochSeconds;
 }
 
-async function pending(client: PublicClient, tx: Transaction): Promise<EthStatus> {
+async function pending(client: PublicClient, tx: Transaction): Promise<TxStatus> {
   const [latest, confirmedNonce, value] = await Promise.all([
     client.getBlock({ blockTag: "latest" }),
     client.getTransactionCount({ address: tx.from, blockTag: "latest" }),
@@ -116,7 +105,7 @@ async function describeValue(
   client: PublicClient,
   tx: Transaction,
   at: number | null,
-): Promise<EthValue> {
+): Promise<TxValue> {
   if (tx.input === "0x" || !tx.to) {
     const amount = Number(formatEther(tx.value));
     const price = await eurPrice("ethereum", at);
@@ -124,14 +113,14 @@ async function describeValue(
   }
   const token = await tokenTransfer(client, tx);
   if (token) {
-    const price = await eurPrice(tx.to, at);
+    const price = await eurPrice({ platform: "ethereum", address: tx.to }, at);
     return { ...token, kind: "amount", eur: price === null ? null : token.amount * price };
   }
   return {
     kind: "call",
     name: await contractName(tx.to),
     address: tx.to,
-    ethSent: Number(formatEther(tx.value)),
+    sent: Number(formatEther(tx.value)),
   };
 }
 
