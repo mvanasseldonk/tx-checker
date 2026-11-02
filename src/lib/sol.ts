@@ -13,6 +13,8 @@ const RETRY_MS = 400;
 const TIP_LAMPORTS = 1_000_000;
 
 const SYSTEM = "11111111111111111111111111111111";
+const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const TOKEN_2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 const WRAPPED_SOL = "So11111111111111111111111111111111111111112";
 
 // Programs that only prepare or decorate a transaction, never what it is about.
@@ -40,6 +42,8 @@ const PROGRAMS: Record<string, string> = {
   TSWAPaqyCSx2KABk68Shruf4rp7CxcNi8hAsbdwmHbN: "Tensor",
   MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD: "Marinade",
   Stake11111111111111111111111111111111111111: "Stake",
+  [TOKEN]: "Token Program",
+  [TOKEN_2022]: "Token Program",
 };
 
 // Tokens people send most, by mint.
@@ -170,8 +174,14 @@ async function describeValue(tx: ParsedTransaction, at: number | null): Promise<
     return { kind: "amount", amount, symbol: "SOL", eur: price === null ? null : amount * price };
   }
 
-  if (others.length === 1) {
-    const token = tokenTransfer(tx, others[0]);
+  // A token transfer, maybe among other token bookkeeping: the one the signer signed is it.
+  const signed = others.filter(
+    (ix) => isTokenProgram(ix.programId) && info(ix).authority === signer,
+  );
+  const candidates =
+    others.length === 1 ? others : others.every((ix) => isTokenProgram(ix.programId)) ? signed : [];
+  if (candidates.length === 1) {
+    const token = tokenTransfer(tx, candidates[0]);
     if (token) {
       const [symbol, price] = await Promise.all([
         tokenSymbol(token.mint),
@@ -190,9 +200,7 @@ async function describeValue(tx: ParsedTransaction, at: number | null): Promise<
   }
 
   const program =
-    others.find((ix) => !ix.programId.startsWith("Token"))?.programId ??
-    others[0]?.programId ??
-    SYSTEM;
+    others.find((ix) => !isTokenProgram(ix.programId))?.programId ?? others[0]?.programId ?? SYSTEM;
   return { kind: "call", name: PROGRAMS[program] ?? null, address: program, sent };
 }
 
@@ -214,6 +222,10 @@ function tokenTransfer(
   const balance = tx.meta.preTokenBalances?.find((b) => b.accountIndex === index);
   if (!balance || typeof data.amount !== "string") return null;
   return { mint: balance.mint, amount: Number(data.amount) / 10 ** balance.uiTokenAmount.decimals };
+}
+
+function isTokenProgram(programId: string): boolean {
+  return programId === TOKEN || programId === TOKEN_2022;
 }
 
 function parsedType(ix: Instruction): string | undefined {
