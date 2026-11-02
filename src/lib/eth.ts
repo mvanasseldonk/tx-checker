@@ -30,7 +30,9 @@ export type EthStatus =
   | { kind: "failed"; value: EthValue; reason: string | null; feeEur: number | null }
   | { kind: "notFound" };
 
-const SECONDS_PER_BLOCK = 12;
+const SECONDS_PER_SLOT = 12;
+const SLOTS_PER_EPOCH = 32;
+const BEACON_GENESIS = 1606824023;
 
 let client: PublicClient | undefined;
 
@@ -54,10 +56,9 @@ export async function lookupEth(hash: Hash): Promise<EthStatus> {
   if (!tx) return { kind: "notFound" };
   if (!receipt) return pending(client, tx);
 
-  const [block, finalized, head] = await Promise.all([
+  const [block, finalized] = await Promise.all([
     client.getBlock({ blockNumber: receipt.blockNumber }),
     client.getBlock({ blockTag: "finalized" }),
-    client.getBlockNumber(),
   ]);
   const at = Number(block.timestamp);
 
@@ -73,14 +74,25 @@ export async function lookupEth(hash: Hash): Promise<EthStatus> {
 
   const value = await describeValue(client, tx, at);
   if (receipt.blockNumber <= finalized.number) return { kind: "final", value };
-  const blocksToFinal = Number(receipt.blockNumber - finalized.number);
-  const span = Number(head - finalized.number);
+  const finalAt = finalizedAt(at);
+  const now = Date.now() / 1000;
   return {
     kind: "included",
     value,
-    progress: span > 0 ? Math.min(1, Math.max(0, 1 - blocksToFinal / span)) : 0,
-    minutesToFinal: Math.max(1, Math.ceil((blocksToFinal * SECONDS_PER_BLOCK) / 60)),
+    progress: Math.min(1, Math.max(0, (now - at) / (finalAt - at))),
+    minutesToFinal: Math.max(1, Math.ceil((finalAt - now) / 60)),
   };
+}
+
+/**
+ * When a block is expected to be final. The chain finalizes the first slot of the epoch two
+ * epochs behind the current one, so a block is final two epochs after the first epoch that
+ * starts at or after it.
+ */
+function finalizedAt(blockTime: number): number {
+  const epochSeconds = SLOTS_PER_EPOCH * SECONDS_PER_SLOT;
+  const nextEpoch = Math.ceil((blockTime - BEACON_GENESIS) / epochSeconds);
+  return BEACON_GENESIS + (nextEpoch + 2) * epochSeconds;
 }
 
 async function pending(client: PublicClient, tx: Transaction): Promise<EthStatus> {
