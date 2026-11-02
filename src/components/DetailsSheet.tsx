@@ -176,9 +176,11 @@ function Fields({ details, notSent }: { details: TxDetails; notSent: boolean }) 
           {to.method && <span className="text-sm text-muted">{to.method}</span>}
         </Field>
       )}
-      <Field label="From">
-        <Address address={details.from} />
-      </Field>
+      {details.from && (
+        <Field label="From">
+          <Address address={details.from} />
+        </Field>
+      )}
       {amount && (
         <Field label="Amount">
           <Money money={amount} note={notSent ? "not sent" : undefined} />

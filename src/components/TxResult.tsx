@@ -1,10 +1,11 @@
-import type { Chain } from "@/lib/detect";
+import Link from "next/link";
+import { shortId, type Chain } from "@/lib/detect";
 import { formatAmount, formatEur, formatWait, shortAddress } from "@/lib/format";
 import type { TxStatus, TxValue } from "@/lib/status";
 import { DetailsSheet } from "./DetailsSheet";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
-import { LockIcon } from "./icons";
+import { ArrowRightIcon, LockIcon } from "./icons";
 import { KeepChecking } from "./KeepChecking";
 import { Disc, Ring } from "./StatusCircle";
 import { StillLooking } from "./StillLooking";
@@ -13,17 +14,21 @@ const GREEN = "#0B6B45";
 const AMBER = "#B86A00";
 const RED = "#A3231B";
 
-const NATIVE: Record<Chain, string> = { eth: "ETH", sol: "SOL" };
-// Seconds between lookups: one block on each chain.
-const BLOCK_SECONDS: Record<Chain, number> = { eth: 12, sol: 2 };
+const NATIVE: Record<Chain, string> = { eth: "ETH", sol: "SOL", btc: "BTC" };
+const GONE = "#5B6472";
+// Seconds between lookups: one block on ETH and SOL. Bitcoin blocks take ~10 min, so every 30 s.
+const BLOCK_SECONDS: Record<Chain, number> = { eth: 12, sol: 2, btc: 30 };
+const MINUTES_PER_BLOCK = 10;
 
-// Neither chain has a transaction yet: how long to keep looking, and what to say meanwhile.
+// No transaction yet: how long to keep looking, and what to say meanwhile.
+const UNKNOWN = {
+  seconds: 120,
+  looking: { word: "Not found", line: "Other chain? We only do ETH, SOL and BTC" },
+  stopped: { word: "Not found", line: "Other chain? We only do ETH, SOL and BTC" },
+};
 const NOT_FOUND = {
-  eth: {
-    seconds: 120,
-    looking: { word: "Not found", line: "Other chain? We only do ETH and SOL" },
-    stopped: { word: "Not found", line: "Other chain? We only do ETH and SOL" },
-  },
+  eth: UNKNOWN,
+  btc: UNKNOWN,
   // Solana has no queue: a transaction that never lands expires with its blockhash.
   sol: {
     seconds: 90,
@@ -37,8 +42,20 @@ const PENDING_CAUSE = {
   nonce: "Waiting for an earlier transaction",
 };
 
+function placeInLine(blocksAway: number): string {
+  if (blocksAway === 1) return "Next block";
+  return `In ~${blocksAway} blocks · ~${blocksAway * MINUTES_PER_BLOCK} min`;
+}
+
 /** One status circle, one status word and at most one line. */
 export function TxResult({ chain, id, status }: { chain: Chain; id: string; status: TxStatus }) {
+  if (status.kind === "replaced") {
+    return (
+      <Frame chain={chain} pasteAgain>
+        <Replaced chain={chain} by={status.by} />
+      </Frame>
+    );
+  }
   if (status.kind === "notFound") {
     return (
       <Frame chain={chain} pasteAgain>
@@ -58,7 +75,33 @@ export function TxResult({ chain, id, status }: { chain: Chain; id: string; stat
   );
 }
 
-function Circle({ chain, status }: { chain: Chain; status: Exclude<TxStatus, { kind: "notFound" }> }) {
+type Found = Exclude<TxStatus, { kind: "notFound" | "replaced" }>;
+
+/** Bitcoin: swapped for another version. The circle leads to the one that took its place. */
+function Replaced({ chain, by }: { chain: Chain; by: string }) {
+  return (
+    <>
+      <Link
+        href={`/tx/${by}`}
+        aria-label={`Open the new transaction ${shortId(chain, by)}`}
+        className="rounded-full transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+      >
+        <Disc color={GONE} shadow="rgba(91,100,114,0.5)">
+          <span className="text-[15px] text-white/85">replaced by</span>
+          <span className="font-mono text-xl">{shortId(chain, by)}</span>
+          <span className="text-white/85">
+            <ArrowRightIcon size={20} />
+          </span>
+        </Disc>
+      </Link>
+      <Heading word="Replaced" color="text-gone">
+        Sped up or cancelled in your wallet
+      </Heading>
+    </>
+  );
+}
+
+function Circle({ chain, status }: { chain: Chain; status: Found }) {
   switch (status.kind) {
     case "final":
       return (
@@ -87,7 +130,7 @@ function Circle({ chain, status }: { chain: Chain; status: Exclude<TxStatus, { k
   }
 }
 
-function Verdict({ status }: { status: Exclude<TxStatus, { kind: "notFound" }> }) {
+function Verdict({ status }: { status: Found }) {
   switch (status.kind) {
     case "final":
       return (
@@ -107,7 +150,11 @@ function Verdict({ status }: { status: Exclude<TxStatus, { kind: "notFound" }> }
     case "pending":
       return (
         <Heading word="Pending" color="text-pending">
-          {status.cause ? PENDING_CAUSE[status.cause] : "Waiting to be included"}
+          {status.cause
+            ? PENDING_CAUSE[status.cause]
+            : status.blocksAway
+              ? placeInLine(status.blocksAway)
+              : "Waiting to be included"}
         </Heading>
       );
     case "failed":
@@ -139,7 +186,9 @@ function Value({
   const sub = notSent
     ? "not sent"
     : value.kind === "amount"
-      ? value.eur !== null && formatEur(value.eur)
+      ? [value.eur !== null && formatEur(value.eur), value.recipients && `to ${value.recipients} addresses`]
+          .filter(Boolean)
+          .join(" · ")
       : value.sent > 0 && `${formatAmount(value.sent)} ${NATIVE[chain]} sent`;
   const isAddress = value.kind === "call" && !value.name;
   return (
