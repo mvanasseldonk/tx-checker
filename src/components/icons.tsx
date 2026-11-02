@@ -59,3 +59,12 @@ export function LockIcon(props: IconProps) {
     </Svg>
   );
 }
+
+export function RetryIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 4v4h-4" />
+    </Svg>
+  );
+}
