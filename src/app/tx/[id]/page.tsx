@@ -1,3 +1,5 @@
+import { unstable_rethrow } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import type { Hash } from "viem";
 import { Checking } from "@/components/Checking";
@@ -30,7 +32,10 @@ function Transaction({ id }: { id: string }) {
 }
 
 async function EthTransaction({ hash }: { hash: Hash }) {
+  // A status is live data: look it up per request, never in a prerender that gets cached.
+  await connection();
   const status = await lookupEth(hash).catch((error: unknown) => {
+    unstable_rethrow(error);
     console.error(`Looking up ${hash} failed`, error);
     return null;
   });
