@@ -1,6 +1,7 @@
 /** What a transaction moves, as shown in the circle. */
 export type TxValue =
-  | { kind: "amount"; amount: number; symbol: string; eur: number | null }
+  // `recipients` is set when a Bitcoin transaction splits the amount over several addresses.
+  | { kind: "amount"; amount: number; symbol: string; eur: number | null; recipients?: number }
   // A contract (ETH) or program (SOL) call, with the native coin sent along with it.
   | { kind: "call"; name: string | null; address: string; sent: number };
 
@@ -12,7 +13,8 @@ export type TxRecipient = { address: string; name: string | null; method: string
 
 /** The few facts shown on request. */
 export type TxDetails = {
-  from: string;
+  // Null when no input address is known, as in a Bitcoin coinbase transaction.
+  from: string | null;
   to: TxRecipient | null;
   amount: TxAmount | null;
   // Null while no fee has been charged yet.
@@ -24,9 +26,12 @@ export type TxDetails = {
 export type TxStatus =
   | { kind: "final"; value: TxValue; details: TxDetails }
   | { kind: "included"; value: TxValue; details: TxDetails; progress: number; secondsToFinal: number }
-  | { kind: "pending"; value: TxValue; details: TxDetails; cause: "fee" | "nonce" | null }
+  // `blocksAway` (Bitcoin): which projected block it is in, 1 being the next one.
+  | { kind: "pending"; value: TxValue; details: TxDetails; cause: "fee" | "nonce" | null; blocksAway?: number }
   | { kind: "failed"; value: TxValue; details: TxDetails; reason: string | null; feeEur: number | null }
-  | { kind: "notFound" };
+  | { kind: "notFound" }
+  // Bitcoin: swapped for a faster or cancelling version. `by` is the txid that replaced it.
+  | { kind: "replaced"; by: string };
 
 /** The amount row of the details: what was moved, or the coin sent along with a call. */
 export function detailAmount(value: TxValue, symbol: string, nativeEur: number | null): TxAmount | null {
