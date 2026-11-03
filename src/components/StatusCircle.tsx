@@ -1,18 +1,31 @@
 const RADIUS = 98;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-/** A white circle with a ring around it, filled for `progress` (0–1) of the way. */
+const CENTER = "104px 104px";
+
+/**
+ * A white circle with a ring around it, filled for `progress` (0–1) of the way.
+ * `spinning` is the fast spin of "Checking". `following` is the calm motion of a status that is
+ * still being followed: the arc travels around the track, or, when `pulse` is set, the leading
+ * end of the ring breathes. `still` pauses it where it is.
+ */
 export function Ring({
   color,
   track,
   progress,
   spinning = false,
+  following = false,
+  pulse = false,
+  still = false,
   children,
 }: {
   color: string;
   track: string;
   progress: number;
   spinning?: boolean;
+  following?: boolean;
+  pulse?: boolean;
+  still?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -27,18 +40,39 @@ export function Ring({
         <circle cx="104" cy="104" r="94" fill="#fff" />
         <circle cx="104" cy="104" r={RADIUS} fill="none" stroke={track} strokeWidth="8" />
         {progress > 0 && (
-          <circle
-            cx="104"
-            cy="104"
-            r={RADIUS}
-            fill="none"
-            stroke={color}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={`${CIRCUMFERENCE * progress} ${CIRCUMFERENCE}`}
-            transform="rotate(-90 104 104)"
-            className="motion-safe:transition-[stroke-dasharray] motion-safe:duration-700"
-          />
+          <g
+            className={following && !pulse ? "motion-safe:animate-travel" : ""}
+            style={{ transformOrigin: CENTER, animationPlayState: still ? "paused" : "running" }}
+          >
+            <circle
+              cx="104"
+              cy="104"
+              r={RADIUS}
+              fill="none"
+              stroke={color}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${CIRCUMFERENCE * progress} ${CIRCUMFERENCE}`}
+              transform="rotate(-90 104 104)"
+              className="motion-safe:transition-[stroke-dasharray,stroke] motion-safe:duration-700"
+            />
+          </g>
+        )}
+        {following && pulse && (
+          // A soft halo on the leading end of the ring, turned along with the ring as it grows.
+          <g
+            className="motion-safe:transition-transform motion-safe:duration-700"
+            style={{ transformOrigin: CENTER, transform: `rotate(${progress * 360}deg)` }}
+          >
+            <circle
+              cx="104"
+              cy={104 - RADIUS}
+              r="4"
+              fill={color}
+              className="opacity-0 motion-safe:animate-pulse-end"
+              style={{ transformBox: "fill-box", transformOrigin: "center", animationPlayState: still ? "paused" : "running" }}
+            />
+          </g>
         )}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center">

@@ -9,6 +9,26 @@
   --color-success: #0b6b45;
   --color-pending: #8a4f00;
   --color-gone: #3f4855;
+
+  /* Motion that says "still watching". Always behind motion-safe: nothing moves under reduced motion. */
+  --animate-travel: travel 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  --animate-pulse-end: pulse-end 2.6s ease-out infinite;
+
+  @keyframes travel {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes pulse-end {
+    from {
+      opacity: 0.45;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.8);
+    }
+  }
 }
 
 @theme inline {
