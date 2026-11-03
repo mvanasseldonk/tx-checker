@@ -1,16 +1,12 @@
 import { unstable_rethrow } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import type { Hash } from "viem";
 import { Checking } from "@/components/Checking";
 import { PasteScreen } from "@/components/PasteScreen";
 import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
 import { detectTransaction, type Chain } from "@/lib/detect";
-import { lookupBtc } from "@/lib/btc";
-import { lookupEth } from "@/lib/eth";
-import { lookupSol } from "@/lib/sol";
-import type { TxStatus } from "@/lib/status";
+import { LOOKUP } from "@/lib/lookup";
 
 export default function TxPage({ params }: PageProps<"/tx/[id]">) {
   return (
@@ -31,12 +27,6 @@ function Transaction({ id }: { id: string }) {
     </Suspense>
   );
 }
-
-const LOOKUP: Record<Chain, (id: string) => Promise<TxStatus>> = {
-  eth: (id) => lookupEth(id as Hash),
-  sol: lookupSol,
-  btc: lookupBtc,
-};
 
 async function LiveStatus({ chain, id }: { chain: Chain; id: string }) {
   // A status is live data: look it up per request, never in a prerender that gets cached.

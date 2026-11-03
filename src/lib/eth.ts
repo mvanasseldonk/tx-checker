@@ -34,7 +34,7 @@ const BEACON_GENESIS = 1606824023;
 
 let client: PublicClient | undefined;
 
-function ethClient(): PublicClient {
+export function ethClient(): PublicClient {
   const key = process.env.ALCHEMY_API_KEY;
   if (!key) throw new Error("ALCHEMY_API_KEY is not set");
   client ??= createPublicClient({

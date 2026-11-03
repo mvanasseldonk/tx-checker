@@ -2,6 +2,8 @@ import { eurPrice } from "./prices";
 import { detailAmount, type TxDetails, type TxStatus, type TxValue } from "./status";
 
 const API = "https://mempool.space/api";
+// Blockstream runs the same API (it is what mempool.space is built on).
+export const BACKUP_API = "https://blockstream.info/api";
 const SATS_PER_BTC = 1e8;
 const FINAL_CONFIRMATIONS = 6;
 const BLOCK_SECONDS = 600;
@@ -9,6 +11,7 @@ const BLOCK_SECONDS = 600;
 const PROJECTED_BLOCKS = 8;
 const TIMEOUT_MS = 2500;
 const RETRY_MS = 400;
+const SLOW_MS = 2000;
 
 type Output = { scriptpubkey_address?: string; value: number };
 
@@ -24,20 +27,26 @@ type BtcTransaction = {
 export type ProjectedBlock = { feeRange: number[] };
 
 // A 404 (unknown transaction) is null; any other failure throws, so it is never taken for "not found".
-async function get(path: string, retry = true): Promise<Response | null> {
-  const response = await fetch(`${API}${path}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+async function get(path: string, timeout = TIMEOUT_MS, api = API, retry = true): Promise<Response | null> {
+  const started = Date.now();
+  const response = await fetch(`${api}${path}`, { signal: AbortSignal.timeout(timeout) }).catch((error: unknown) => {
+    console.info(`${api}${path} gave no response after ${Date.now() - started} ms: ${String(error)}`);
+    throw error;
+  });
+  // Slow answers are what turns a lookup into "too busy": leave a trace of them.
+  if (Date.now() - started > SLOW_MS) console.info(`${api}${path} ${response.status} after ${Date.now() - started} ms`);
   // Rate limits and node hiccups pass quickly; one failed refresh shouldn't end the countdown.
   if ((response.status === 429 || response.status >= 500) && retry) {
     await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
-    return get(path, false);
+    return get(path, timeout, api, false);
   }
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`mempool.space ${path} returned ${response.status}`);
+  if (!response.ok) throw new Error(`${api}${path} returned ${response.status}`);
   return response;
 }
 
-async function getJson<T>(path: string): Promise<T | null> {
-  return (await get(path))?.json() ?? null;
+export async function getJson<T>(path: string, timeout?: number, api?: string): Promise<T | null> {
+  return (await get(path, timeout, api))?.json() ?? null;
 }
 
 /** Looks up a Bitcoin mainnet transaction and what to tell the user about it. */

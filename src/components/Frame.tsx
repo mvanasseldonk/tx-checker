@@ -19,7 +19,7 @@ export function Frame({
         {pasteAgain && (
           <Link
             href="/"
-            aria-label="Paste another transaction"
+            aria-label="Paste another transaction or address"
             className="ml-auto flex size-11 items-center justify-center rounded-full bg-ink text-white transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             <ClipboardIcon size={18} strokeWidth={1.8} />
