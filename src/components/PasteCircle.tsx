@@ -42,7 +42,8 @@ export function PasteCircle({
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 rounded-full transition-opacity duration-(--duration-fast) group-active:opacity-0 group-data-shaking:opacity-0"
         >
-          <span className="block size-full rounded-full bg-ink opacity-0 motion-safe:animate-breathe" />
+          {/* Ink at the rim of the circle (where it ends once the halo has grown), fading out to nothing: a glow, no edge. */}
+          <span className="block size-full rounded-full bg-[radial-gradient(closest-side,rgb(16_19_24)_79%,rgb(16_19_24/0.45)_90%,rgb(16_19_24/0)_100%)] opacity-0 motion-safe:animate-breathe" />
         </span>
       )}
       <ClipboardIcon size={32} strokeWidth={1.6} />
