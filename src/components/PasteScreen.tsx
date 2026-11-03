@@ -9,7 +9,7 @@ import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
 import { usePaste } from "./usePaste";
 
 const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction or address";
-const UNREADABLE_MESSAGE = "Couldn't read the clipboard. Tap Paste again, or type it.";
+const UNREADABLE_MESSAGE = "Couldn't read the clipboard. Tap Paste to try again.";
 
 type Mode = "paste" | "type";
 
