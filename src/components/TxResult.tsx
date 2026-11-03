@@ -162,12 +162,16 @@ function progressOf(status: Found): number {
 }
 
 /** The status word and the one line under it. */
-function verdictOf(status: Found, waiting: string): { word: string; wordClass: string; line: React.ReactNode } {
+function verdictOf(
+  status: Found,
+  waiting: string,
+): { word: string; wordClass: string; line: React.ReactNode; lineKey: string } {
   switch (status.kind) {
     case "final":
       return {
         word: "Success",
         wordClass: "text-success",
+        lineKey: "Final",
         line: (
           <>
             <span className="mr-1.5 inline-block align-[-1px]">
@@ -178,9 +182,9 @@ function verdictOf(status: Found, waiting: string): { word: string; wordClass: s
         ),
       };
     case "included":
-      return { word: "Success", wordClass: "text-success", line: `Final in ${formatWait(status.secondsToFinal)}` };
+      return withKey({ word: "Success", wordClass: "text-success", line: `Final in ${formatWait(status.secondsToFinal)}` });
     case "pending":
-      return {
+      return withKey({
         word: "Pending",
         wordClass: "text-pending",
         line: status.cause
@@ -188,14 +192,19 @@ function verdictOf(status: Found, waiting: string): { word: string; wordClass: s
           : status.blocksAway
             ? placeInLine(status.blocksAway)
             : waiting,
-      };
+      });
     case "failed":
-      return {
+      return withKey({
         word: "Failed",
         wordClass: "text-danger",
         line: `${status.reason ?? "No reason given"}${status.feeEur !== null ? ` · ${formatEur(status.feeEur)} fee paid` : ""}`,
-      };
+      });
   }
+}
+
+/** A line that is plain text is its own key. */
+function withKey(verdict: { word: string; wordClass: string; line: string }) {
+  return { ...verdict, lineKey: verdict.line };
 }
 
 /** The amount and its euro value, or the contract or program and the coin sent to it. */

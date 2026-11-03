@@ -28,6 +28,7 @@ export function Following({
   word,
   wordClass,
   line,
+  lineKey,
   arrived = false,
   children,
 }: {
@@ -40,6 +41,8 @@ export function Following({
   word: string;
   wordClass: string;
   line: React.ReactNode;
+  // What tells one line from the next, since the line itself can be markup.
+  lineKey: string;
   arrived?: boolean;
   children: React.ReactNode;
 }) {
@@ -104,6 +107,7 @@ export function Following({
       pulse={kind === "included"}
       still={stopped}
       drawIn={!settled || arrived || change === "draw"}
+      landing
       cover={cover}
       contentClassName={`motion-safe:transition-colors ${timing} ${settled ? "text-white motion-safe:delay-500" : ""}`}
       contentStyle={{ "--sub": settled ? "rgb(255 255 255 / 0.85)" : "var(--color-muted)" } as React.CSSProperties}
@@ -125,7 +129,8 @@ export function Following({
           />
         )}
       </div>
-      <Heading word={word} color={wordClass}>
+      {/* A settling status brings its own fade for the line, after the disc has filled in. */}
+      <Heading word={word} color={wordClass} lineKey={gaveUp ? "gave up" : lineKey} swapLine={change !== "settle"}>
         {gaveUp ? (
           <button type="button" onClick={checkAgain} className="inline-flex min-h-11 items-center underline decoration-hint underline-offset-4">
             Stopped following · tap to check again

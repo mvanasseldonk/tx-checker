@@ -40,7 +40,7 @@ export function StillLooking({
   const verdict = secondsLeft > 0 ? looking : stopped;
   return (
     <>
-      <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={secondsLeft / seconds}>
+      <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={secondsLeft / seconds} landing>
         <span className="display text-[32px] tabular-nums">
           {minutes}:{rest}
         </span>

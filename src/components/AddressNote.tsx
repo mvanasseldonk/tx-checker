@@ -18,7 +18,7 @@ export function AddressNote({
 }) {
   return (
     <Frame chain={chain} pasteAgain>
-      <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={0}>
+      <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={0} landing>
         <span className="font-mono text-[15px] text-muted">{shortAddress(address)}</span>
       </Ring>
       <Heading word={word} color="text-gone">
