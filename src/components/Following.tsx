@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { circleChange, followDeadline, isFollowing, isSettled } from "@/lib/follow";
 import { Heading } from "./Heading";
 import { Ring } from "./StatusCircle";
+import { useWatch } from "./Watch";
 
 type Kind = "final" | "included" | "pending" | "failed";
 
@@ -14,6 +15,8 @@ type Kind = "final" | "included" | "pending" | "failed";
  * A change of status while the page is open animates: the ring completes and fills in as a disc.
  * A transaction that stays Pending is given up on after a while; a tap on the circle or its line
  * looks again, and starts following afresh.
+ * On an address page the watch of the address does the looking again, and the stopping.
+ * `arrived` is a transaction that turned up there while watching: its ring is drawn in.
  */
 export function Following({
   kind,
@@ -25,6 +28,7 @@ export function Following({
   word,
   wordClass,
   line,
+  arrived = false,
   children,
 }: {
   kind: Kind;
@@ -36,11 +40,16 @@ export function Following({
   word: string;
   wordClass: string;
   line: React.ReactNode;
+  arrived?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const watch = useWatch();
   const settled = isSettled(kind);
-  const [stopped, setStopped] = useState(false);
+  const [givenUp, setGivenUp] = useState(false);
+  const stopped = watch ? watch.stopped : givenUp;
+  // Only on its own does it give up with a line and a circle to tap.
+  const gaveUp = givenUp && !watch;
   const following = !settled && !stopped;
   const [, startTransition] = useTransition();
 
@@ -53,11 +62,11 @@ export function Following({
   }
 
   useEffect(() => {
-    if (!following) return;
+    if (!following || watch) return;
     const startedAt = Date.now();
     const keepGoing = () => {
       if (isFollowing(kind, startedAt, Date.now())) return true;
-      setStopped(true);
+      setGivenUp(true);
       return false;
     };
     const refresh = setInterval(() => keepGoing() && router.refresh(), seconds * 1000);
@@ -68,10 +77,10 @@ export function Following({
       clearInterval(refresh);
       clearTimeout(giveUp);
     };
-  }, [following, kind, router, seconds]);
+  }, [following, kind, router, seconds, watch]);
 
   function checkAgain() {
-    setStopped(false);
+    setGivenUp(false);
     startTransition(() => router.refresh());
   }
 
@@ -94,7 +103,7 @@ export function Following({
       following={!settled}
       pulse={kind === "included"}
       still={stopped}
-      drawIn={change === "draw"}
+      drawIn={arrived || change === "draw"}
       cover={cover}
       contentClassName={`motion-safe:transition-colors ${timing} ${settled ? "text-white motion-safe:delay-500" : ""}`}
       contentStyle={{ "--sub": settled ? "rgb(255 255 255 / 0.85)" : "var(--color-muted)" } as React.CSSProperties}
@@ -107,7 +116,7 @@ export function Following({
       {/* The button sits over the circle, so the circle itself stays put when it appears. */}
       <div className="relative rounded-full transition-transform has-[button:active]:scale-95">
         {circle}
-        {stopped && (
+        {gaveUp && (
           <button
             type="button"
             onClick={checkAgain}
@@ -117,7 +126,7 @@ export function Following({
         )}
       </div>
       <Heading word={word} color={wordClass}>
-        {stopped ? (
+        {gaveUp ? (
           <button type="button" onClick={checkAgain} className="py-1 underline decoration-hint underline-offset-4">
             Stopped following · tap to check again
           </button>

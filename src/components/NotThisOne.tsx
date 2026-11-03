@@ -5,11 +5,14 @@ import { useState } from "react";
 import type { Candidate } from "@/lib/address/types";
 import { formatAmount, formatTime } from "@/lib/format";
 
-/** A quiet "Not this one?" that opens the last few transactions of the address, each a link to follow it. */
-export function NotThisOne({ candidates, currentId }: { candidates: Candidate[]; currentId: string }) {
+/**
+ * A quiet "Not this one?" that opens the last few transactions of the address, each a link to follow it.
+ * When none is shown (`currentId` is absent), it reads "Earlier transactions".
+ */
+export function NotThisOne({ candidates, currentId }: { candidates: Candidate[]; currentId?: string }) {
   const [open, setOpen] = useState(false);
-  // Only a single transaction found: there is no other one to pick.
-  if (candidates.length < 2) return null;
+  // Only the transaction that is shown: there is no other one to pick.
+  if (candidates.every((candidate) => candidate.id === currentId)) return null;
   return (
     <div className="flex w-full flex-col items-center">
       <button
@@ -18,7 +21,7 @@ export function NotThisOne({ candidates, currentId }: { candidates: Candidate[];
         aria-expanded={open}
         className="min-h-11 rounded-full px-5 text-[15px] text-muted underline decoration-hint underline-offset-4 active:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
-        Not this one?
+        {currentId ? "Not this one?" : "Earlier transactions"}
       </button>
       {/* The list only exists while open, so times render in the viewer's time zone, never the server's. */}
       {open && (

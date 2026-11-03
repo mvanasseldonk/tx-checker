@@ -51,7 +51,8 @@ function placeInLine(blocksAway: number): string {
 /**
  * One status circle, one status word and at most one line. Found through an address, it also
  * says whether the transaction was `direction` and has `below` it a way to pick another one;
- * `waiting` is then what a pending transaction says when it has no cause to show.
+ * `waiting` is then what a pending transaction says when it has no cause to show, and `arrived`
+ * that it turned up just now, while the address was being watched.
  */
 export function TxResult({
   chain,
@@ -59,6 +60,7 @@ export function TxResult({
   status,
   direction,
   waiting = "Waiting to be included",
+  arrived = false,
   below,
 }: {
   chain: Chain;
@@ -66,6 +68,7 @@ export function TxResult({
   status: TxStatus;
   direction?: Direction;
   waiting?: string;
+  arrived?: boolean;
   below?: React.ReactNode;
 }) {
   const label = direction && <DirectionLabel direction={direction} />;
@@ -95,6 +98,7 @@ export function TxResult({
         seconds={BLOCK_SECONDS[chain]}
         {...LOOK[status.kind]}
         progress={progressOf(status)}
+        arrived={arrived}
         {...verdictOf(status, waiting)}
       >
         <Value chain={chain} value={status.value} notSent={status.kind === "failed"} />
