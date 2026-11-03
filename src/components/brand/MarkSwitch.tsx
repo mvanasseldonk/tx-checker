@@ -6,7 +6,7 @@ import { DEFAULT_MARK, MARKS } from "./config";
 /**
  * A pill for choosing between the logo directions, on previews only (the layout leaves it out on
  * production). It sets data-mark on <html>, which the `.mark-variant` rules in globals.css turn into the
- * logo, and remembers the choice in localStorage. `?mark=a|b|c` in the URL picks one too, which makes it
+ * logo, and remembers the choice in localStorage. `?mark=a|d|e|f` in the URL picks one too, which makes it
  * linkable; PICK_MARK (config.ts) reads both in the head, before the first paint.
  */
 const EVENT = "markchange";

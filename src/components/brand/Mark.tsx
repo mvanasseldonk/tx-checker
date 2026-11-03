@@ -1,11 +1,13 @@
+import { A_BODY, A_BOX, D_BAR_MARK, LAST_O_BOX, SETTLED_O, SHORE_WEIGHT } from "./glyphs";
 import { DEFAULT_MARK, type MarkKind } from "./config";
 
 /*
- * The mark, three ways, in one colour on a 64 x 64 box: `ink` for the shapes, `cut` for what is cut out of
- * a shape (only B has any, and it is the ground colour of the page).
+ * The mark, four ways, in one colour on a 64 x 64 box. Each of d, e and f is a letter of the wordmark
+ * (the real Fraunces outlines of glyphs.ts) with one quiet change, alone and centred.
  *   a  Settled: the status ring with a dot that has come to rest at its foot.
- *   b  Anchor: a disc with an anchor cut out of it.
- *   c  Plumb line: an anchor line drops through the ring and rests in its centre.
+ *   d  Anchor A: the crossbar is a shallow arc, so the A reads as an anchor.
+ *   e  Settled o: the o with its weight sunk to the foot.
+ *   f  Shore line: the A standing on a line that is its crossbar, dropped to the baseline.
  * MarkArt and ringDot are plain functions that return plain SVG elements, so that the share image
  * (satori, which has no components inside an svg) can use them as well as the page.
  */
@@ -24,35 +26,27 @@ export function ringDot(
   );
 }
 
-/** C: the ring, and a line that drops from its rim to a weight hanging low in it. */
-function plumb(ink: string) {
+/** Glyph shapes centred on the 64 x 64 box and scaled so that `box` fits in `fit` x `fit`. */
+function letter(ink: string, d: string, box: { left: number; right: number; top: number; bottom: number }, fit: number) {
+  const scale = fit / Math.max(box.right - box.left, box.bottom - box.top);
+  const x = 32 - (scale * (box.left + box.right)) / 2;
+  const y = 32 - (scale * (box.top + box.bottom)) / 2;
   return (
-    <>
-      <circle cx="32" cy="32" r="26.6" fill="none" stroke={ink} strokeWidth="5.8" />
-      <path d="M32 6V40" fill="none" stroke={ink} strokeWidth="5.8" />
-      <circle cx="32" cy="40" r="8.6" fill={ink} />
-    </>
+    <g transform={`translate(${Math.round(x * 100) / 100} ${Math.round(y * 100) / 100}) scale(${Math.round(scale * 10000) / 10000})`}>
+      <path d={d} fill={ink} />
+    </g>
   );
 }
 
-function anchor(ink: string, cut: string) {
-  return (
-    <>
-      <circle cx="32" cy="32" r="31" fill={ink} />
-      <g fill="none" stroke={cut} strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="32" cy="16.6" r="3.6" />
-        <path d="M32 20.4V47.5" />
-        <path d="M24.2 27H39.8" />
-        <path d="M16.4 35.4C17.6 43.4 24 48.6 32 48.6S46.4 43.4 47.6 35.4" />
-      </g>
-    </>
-  );
-}
+/** The line the A stands on in F: the feet, and a little beyond them on both sides. */
+const SHORE_MARK = `M-70 0H1509V${SHORE_WEIGHT}H-70Z`;
+const SHORE_MARK_BOX = { left: -70, right: 1509, top: A_BOX.top, bottom: SHORE_WEIGHT };
 
 /** The shapes of a mark, on the 64 x 64 box. */
-export function MarkArt(kind: MarkKind, ink: string = "currentColor", cut: string = "var(--color-ground)") {
-  if (kind === "b") return anchor(ink, cut);
-  if (kind === "c") return plumb(ink);
+export function MarkArt(kind: MarkKind, ink: string = "currentColor") {
+  if (kind === "d") return letter(ink, `${D_BAR_MARK}${A_BODY}`, A_BOX, 50);
+  if (kind === "e") return letter(ink, SETTLED_O, LAST_O_BOX, 54);
+  if (kind === "f") return letter(ink, `${A_BODY}${SHORE_MARK}`, SHORE_MARK_BOX, 52);
   return ringDot(ink, { cx: 32, cy: 32, R: 29.5, sw: 7, dot: 7.5, gap: 3.5 });
 }
 

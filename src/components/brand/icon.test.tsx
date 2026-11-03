@@ -1,15 +1,15 @@
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_MARK, GROUND, INK, isMark, PICK_MARK } from "./config";
+import { DEFAULT_MARK, GROUND, INK, isMark, MARKS, PICK_MARK } from "./config";
 import { MarkArt } from "./Mark";
 
 /** What src/app/icon.svg must be: the default mark, in ink, light on a dark tab. */
 function expectedIcon() {
-  const art = renderToStaticMarkup(<>{MarkArt(DEFAULT_MARK, "currentColor", "var(--cut)")}</>);
+  const art = renderToStaticMarkup(<>{MarkArt(DEFAULT_MARK)}</>);
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
-    `<style>svg{color:${INK};--cut:${GROUND}}@media (prefers-color-scheme:dark){svg{color:${GROUND};--cut:${INK}}}</style>` +
+    `<style>svg{color:${INK}}@media (prefers-color-scheme:dark){svg{color:${GROUND}}}</style>` +
     `${art}</svg>\n`
   );
 }
@@ -45,14 +45,14 @@ describe("PICK_MARK", () => {
   });
 
   it("takes the direction from the URL and remembers it", () => {
-    const { mark, store } = run("?mark=c");
-    expect(mark).toBe("c");
-    expect(store.mark).toBe("c");
+    const { mark, store } = run("?mark=e");
+    expect(mark).toBe("e");
+    expect(store.mark).toBe("e");
   });
 
   it("uses the remembered direction, and lets the URL override it", () => {
-    expect(run("", { mark: "b" }).mark).toBe("b");
-    expect(run("?mark=a", { mark: "b" }).mark).toBe("a");
+    expect(run("", { mark: "d" }).mark).toBe("d");
+    expect(run("?mark=a", { mark: "d" }).mark).toBe("a");
   });
 
   it("ignores anything else", () => {
@@ -61,10 +61,14 @@ describe("PICK_MARK", () => {
   });
 
   it("does not throw when storage is blocked", () => {
-    expect(() => run("?mark=b", {}, true)).not.toThrow();
+    expect(() => run("?mark=f", {}, true)).not.toThrow();
   });
 
   it("accepts the same directions as isMark", () => {
-    for (const key of ["a", "b", "c", "d", ""]) expect(run(`?mark=${key}`).mark !== undefined).toBe(isMark(key));
+    for (const key of [...MARKS, "b", "c", "z", "A", "ad", ""]) {
+      expect(run(`?mark=${key}`).mark !== undefined).toBe(isMark(key));
+      expect(run("", { mark: key }).mark !== undefined).toBe(isMark(key));
+    }
+    expect(isMark("b")).toBe(false);
   });
 });

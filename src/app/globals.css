@@ -97,7 +97,8 @@ button {
 }
 html:not([data-mark]) .mark-variant[data-default],
 html[data-mark="a"] .mark-variant[data-mark-variant="a"],
-html[data-mark="b"] .mark-variant[data-mark-variant="b"],
-html[data-mark="c"] .mark-variant[data-mark-variant="c"] {
+html[data-mark="d"] .mark-variant[data-mark-variant="d"],
+html[data-mark="e"] .mark-variant[data-mark-variant="e"],
+html[data-mark="f"] .mark-variant[data-mark-variant="f"] {
   display: contents;
 }

@@ -11,7 +11,7 @@ export default function AppleIcon() {
     (
       <div style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", background: INK }}>
         <svg viewBox="0 0 64 64" width={112} height={112}>
-          {MarkArt(DEFAULT_MARK, GROUND, INK)}
+          {MarkArt(DEFAULT_MARK, GROUND)}
         </svg>
       </div>
     ),

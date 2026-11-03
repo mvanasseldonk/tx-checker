@@ -18,7 +18,7 @@ const fraunces = await readFile(join(process.cwd(), "src/components/brand/fraunc
 
 /** The share image: the lockup of the default mark, the line, and a settled status circle. */
 export default function OpenGraphImage() {
-  const { width, art } = LockupArt(DEFAULT_MARK, INK, GROUND);
+  const { width, art } = LockupArt(DEFAULT_MARK, INK);
   const scale = LOCKUP_SIZE / WORD_UNITS_PER_EM;
 
   return new ImageResponse(
