@@ -1,12 +1,13 @@
-import { cacheLife } from "next/cache";
 import { getJson, sentOutputs } from "../btc";
 import { eurPriceNow } from "../prices";
+import { briefly } from "./memo";
 import { isTimeout, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate, Direction } from "./types";
 
 const SATS_PER_BTC = 1e8;
 // mempool.space can take several seconds on an address it has not looked up before.
 const TIMEOUT_MS = 8000;
+const CACHE_MS = 5000;
 
 export type AddressTx = {
   txid: string;
@@ -35,13 +36,14 @@ export async function lookupBtcAddress(address: string): Promise<AddressActivity
   }
 }
 
-// mempool.space rate-limits per IP, and the page looks again every block while it is followed.
-// A failed request throws, so it is never cached.
-async function recentTransactions(address: string): Promise<Activity[]> {
-  "use cache";
-  cacheLife({ stale: 10, revalidate: 15, expire: 60 });
-  const txs = await getJson<AddressTx[]>(`/address/${address}/txs`, TIMEOUT_MS);
-  return newestFirst(txs ?? []).map((tx) => toActivity(tx, address));
+// mempool.space rate-limits per IP, so a burst of visits to one address asks it once. Kept short,
+// so a new transaction shows up on the next visit. Not `'use cache'`: that would hide what an
+// error was (a timeout means "too busy") and could keep a failure.
+function recentTransactions(address: string): Promise<Activity[]> {
+  return briefly(address, CACHE_MS, async () => {
+    const txs = await getJson<AddressTx[]>(`/address/${address}/txs`, TIMEOUT_MS);
+    return newestFirst(txs ?? []).map((tx) => toActivity(tx, address));
+  });
 }
 
 /**
