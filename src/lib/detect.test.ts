@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectAddress, detectPaste, detectTransaction, shortId } from "./detect";
+import { CHAIN_NAME, detectAddress, detectPaste, detectTransaction, shortId } from "./detect";
 
 const ETH_HASH =
   "0x8f2e7a1c94b0d6e3f1a25c7b8d90e4f3a6b1c2d3e4f5a6b7c8d9e5e3a7d9c41b";
@@ -315,5 +315,11 @@ describe("shortId", () => {
     expect(shortId("eth", ETH_HASH)).toBe("0x8f2e…c41b");
     expect(shortId("sol", "5VERv8NMvzbJ")).toBe("5VER…vzbJ");
     expect(shortId("btc", BTC_TXID)).toBe("9fab…3034");
+  });
+});
+
+describe("CHAIN_NAME", () => {
+  it("names each chain in full, for screen readers", () => {
+    expect(CHAIN_NAME).toEqual({ eth: "Ethereum", sol: "Solana", btc: "Bitcoin" });
   });
 });
