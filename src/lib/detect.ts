@@ -203,4 +203,5 @@ export function shortId(chain: Chain, id: string): string {
   return `${id.slice(0, head)}…${id.slice(-4)}`;
 }
 
-export const CHAIN_LABEL: Record<Chain, string> = { eth: "ETH", sol: "SOL", btc: "BTC" };
+/** The chain's name, as a screen reader should hear it (the screen shows its logo). */
+export const CHAIN_NAME: Record<Chain, string> = { eth: "Ethereum", sol: "Solana", btc: "Bitcoin" };

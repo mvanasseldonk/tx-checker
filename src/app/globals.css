@@ -90,3 +90,35 @@ button {
     animation-delay: 0s !important;
   }
 }
+
+/*
+ * Chain logos (see ChainLogo). Mono, the default, is the ink colour and needs no rules here. These
+ * rules are the "brand" look, set with data-logo on <html> by LogoSwitch on previews.
+ */
+:root[data-logo="brand"] .logo-btc-disc {
+  fill: #f7931a;
+}
+:root[data-logo="brand"] .logo-btc-b {
+  fill: #fff;
+}
+:root[data-logo="brand"] [class^="logo-eth-"] {
+  fill-opacity: 1;
+}
+:root[data-logo="brand"] .logo-eth-a {
+  fill: #8a92b2;
+}
+:root[data-logo="brand"] .logo-eth-b {
+  fill: #62688f;
+}
+:root[data-logo="brand"] .logo-eth-c {
+  fill: #454a75;
+}
+:root[data-logo="brand"] .logo-sol-1 {
+  fill: url(#logo-sol-1);
+}
+:root[data-logo="brand"] .logo-sol-2 {
+  fill: url(#logo-sol-2);
+}
+:root[data-logo="brand"] .logo-sol-3 {
+  fill: url(#logo-sol-3);
+}
