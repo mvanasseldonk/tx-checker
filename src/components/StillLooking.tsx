@@ -41,7 +41,7 @@ export function StillLooking({
   return (
     <>
       <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={secondsLeft / seconds}>
-        <span className="text-[32px] font-medium tracking-[-0.02em] tabular-nums">
+        <span className="display text-[32px] tabular-nums">
           {minutes}:{rest}
         </span>
         <span className="text-[15px] text-muted">{secondsLeft > 0 ? "still looking" : "stopped looking"}</span>

@@ -171,9 +171,9 @@ function Fields({ details, notSent }: { details: TxDetails; notSent: boolean }) 
     <>
       {to && (
         <Field label="To">
-          {to.name && <span className="font-medium">{to.name}</span>}
+          {to.name && <span className="font-medium [overflow-wrap:anywhere]">{to.name}</span>}
           <Address address={to.address} />
-          {to.method && <span className="text-sm text-muted">{to.method}</span>}
+          {to.method && <span className="text-[15px] text-muted [overflow-wrap:anywhere]">{to.method}</span>}
         </Field>
       )}
       {details.from && (
@@ -201,7 +201,7 @@ function Fields({ details, notSent }: { details: TxDetails; notSent: boolean }) 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-14 items-center justify-between gap-6 border-t border-ink/10 py-2 first:border-t-0">
-      <dt className="text-[15px] text-muted">{label}</dt>
+      <dt className="flex-none text-[15px] text-muted">{label}</dt>
       <dd className="flex min-w-0 flex-col items-end text-right text-[15px]">{children}</dd>
     </div>
   );
@@ -212,10 +212,10 @@ function Money({ money, note }: { money: TxAmount; note?: string }) {
   const sub = note ?? (money.eur === null ? null : formatEur(money.eur));
   return (
     <>
-      <span>
+      <span className="[overflow-wrap:anywhere]">
         {formatAmount(money.amount)} {money.symbol}
       </span>
-      {sub && <span className="text-sm text-muted">{sub}</span>}
+      {sub && <span className="text-[15px] text-muted">{sub}</span>}
     </>
   );
 }
@@ -244,7 +244,7 @@ function Address({ address }: { address: string }) {
         type="button"
         onClick={copy}
         aria-label={`Copy address ${address}`}
-        className="-mr-3 flex min-h-11 items-center gap-2 rounded-xl px-3 font-mono text-sm active:bg-ground focus-visible:outline-2 focus-visible:outline-ink"
+        className="-mr-3 flex min-h-11 items-center gap-2 rounded-xl px-3 font-mono text-[15px] active:bg-ground focus-visible:outline-2 focus-visible:outline-ink"
       >
         <span className={copied ? "font-sans text-[15px] font-medium text-success" : ""}>
           {copied ? "Copied" : shortAddress(address)}

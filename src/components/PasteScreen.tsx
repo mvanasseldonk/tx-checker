@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { detectPaste } from "@/lib/detect";
+import { CircleTransition } from "./CircleTransition";
 import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
 
 const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction or address";
@@ -72,7 +73,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
               aria-label="Transaction hash, address or explorer link"
               aria-invalid={invalid}
               aria-describedby={invalid ? "invalid" : undefined}
-              placeholder="Hash, signature, txid or address"
+              placeholder="Hash, txid or address"
               autoFocus
               autoCapitalize="off"
               autoCorrect="off"
@@ -91,7 +92,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
                 setValue(pasted);
                 check(pasted);
               }}
-              className="h-12 min-w-0 flex-1 bg-transparent font-mono text-[15px] text-ink outline-none placeholder:font-sans placeholder:text-sm placeholder:text-hint"
+              className="h-12 min-w-0 flex-1 bg-transparent font-mono text-base text-ink outline-none placeholder:font-sans placeholder:text-hint"
             />
             <button
               type="submit"
@@ -113,19 +114,21 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-9 px-8 pb-20">
-      <button
-        type="button"
-        onClick={pasteFromClipboard}
-        aria-describedby={invalid ? "invalid" : undefined}
-        className={`flex size-52 flex-col items-center justify-center gap-3 rounded-full bg-ink text-xl font-medium text-white transition-[transform,box-shadow] duration-200 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-ink motion-reduce:transition-none ${
-          invalid
-            ? "shadow-[0_0_0_8px_rgba(163,35,27,0.16),0_24px_48px_-20px_rgba(16,19,24,0.45)]"
-            : "shadow-[0_24px_48px_-20px_rgba(16,19,24,0.45)]"
-        }`}
-      >
-        <ClipboardIcon size={32} strokeWidth={1.6} />
-        Paste
-      </button>
+      <CircleTransition>
+        <button
+          type="button"
+          onClick={pasteFromClipboard}
+          aria-describedby={invalid ? "invalid" : undefined}
+          className={`flex size-52 flex-col items-center justify-center gap-3 rounded-full bg-ink text-white transition-[transform,box-shadow] duration-200 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-ink motion-reduce:transition-none ${
+            invalid
+              ? "shadow-[0_0_0_8px_rgba(163,35,27,0.16),0_24px_48px_-20px_rgba(16,19,24,0.45)]"
+              : "shadow-[0_24px_48px_-20px_rgba(16,19,24,0.45)]"
+          }`}
+        >
+          <ClipboardIcon size={32} strokeWidth={1.6} />
+          <span className="display text-[26px]">Paste</span>
+        </button>
+      </CircleTransition>
       <div className="flex flex-col items-center gap-1">
         {invalid && (
           <p id="invalid" role="alert" className="text-center text-base font-medium text-balance text-danger">

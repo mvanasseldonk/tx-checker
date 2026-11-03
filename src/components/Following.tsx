@@ -103,7 +103,7 @@ export function Following({
       following={!settled}
       pulse={kind === "included"}
       still={stopped}
-      drawIn={arrived || change === "draw"}
+      drawIn={!settled || arrived || change === "draw"}
       cover={cover}
       contentClassName={`motion-safe:transition-colors ${timing} ${settled ? "text-white motion-safe:delay-500" : ""}`}
       contentStyle={{ "--sub": settled ? "rgb(255 255 255 / 0.85)" : "var(--color-muted)" } as React.CSSProperties}
@@ -127,7 +127,7 @@ export function Following({
       </div>
       <Heading word={word} color={wordClass}>
         {gaveUp ? (
-          <button type="button" onClick={checkAgain} className="py-1 underline decoration-hint underline-offset-4">
+          <button type="button" onClick={checkAgain} className="inline-flex min-h-11 items-center underline decoration-hint underline-offset-4">
             Stopped following · tap to check again
           </button>
         ) : (

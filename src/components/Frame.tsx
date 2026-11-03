@@ -15,7 +15,7 @@ export function Frame({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-5 pb-8">
       <header className="flex h-11 items-center justify-between">
-        {chain && <span className="text-xs tracking-[0.14em] text-muted">{CHAIN_LABEL[chain]}</span>}
+        {chain && <span className="text-[15px] tracking-[0.14em] text-muted">{CHAIN_LABEL[chain]}</span>}
         {pasteAgain && (
           <Link
             href="/"

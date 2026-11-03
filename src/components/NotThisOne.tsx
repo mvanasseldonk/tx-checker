@@ -46,8 +46,8 @@ function Row({ candidate, current }: { candidate: Candidate; current: boolean })
       className="flex min-h-14 items-center justify-between gap-4 px-4 py-2 text-[15px] active:bg-ground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink"
     >
       <span className="flex min-w-0 flex-col">
-        <span className={current ? "font-semibold" : ""}>{time === null ? "Pending" : formatTime(time)}</span>
-        <span className="text-sm text-muted">{direction === "sent" ? "Sent" : "Received"}</span>
+        <span className={`whitespace-nowrap ${current ? "font-semibold" : ""}`}>{time === null ? "Pending" : formatTime(time)}</span>
+        <span className="text-[15px] text-muted">{direction === "sent" ? "Sent" : "Received"}</span>
       </span>
       {amount && (
         <span className="min-w-0 truncate text-right">
