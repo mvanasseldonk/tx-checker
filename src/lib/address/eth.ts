@@ -1,6 +1,6 @@
 import { ethClient } from "../eth";
-import { eurPrice } from "../prices";
-import { isTimeout, RECENT, summarize, takeRecent, worthShowing } from "./rules";
+import { eurPriceNow, type Price } from "../prices";
+import { isTimeout, isWellKnownToken, RECENT, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate } from "./types";
 
 // Each transfer list is read this deep: an address that gets a lot of spam needs the room to
@@ -22,7 +22,7 @@ export type Transfer = {
 
 const timeOf = (transfer: Transfer) => Math.floor(Date.parse(transfer.metadata.blockTimestamp) / 1000);
 
-type Mined = Candidate & { block: number; token: string | null };
+type Mined = Omit<Candidate, "token"> & { block: number; token: string | null };
 
 /** The recent transactions of an Ethereum address, newest first, minus spam. */
 export async function lookupEthAddress(address: string): Promise<AddressActivity> {
@@ -35,7 +35,7 @@ export async function lookupEthAddress(address: string): Promise<AddressActivity
       transfers({ toAddress: address }),
       pendingFrom(address),
     ]);
-    const nativePrice = eurPrice("ethereum", null);
+    const nativePrice = eurPriceNow("ethereum");
     const mined = await takeRecent(
       mergeTransfers(outgoing, incoming, address),
       async (tx) =>
@@ -143,13 +143,13 @@ export function seenSince(lists: Transfer[][]): number | null {
 
 async function isWorthShowing(
   { amount, token }: Mined,
-  nativePrice: Promise<number | null>,
+  nativePrice: Promise<Price>,
 ): Promise<boolean> {
   if (!amount) return false;
-  const price = token ? await eurPrice({ platform: "ethereum", address: token }, null) : await nativePrice;
-  return worthShowing(amount.amount, price, token !== null);
+  const price = token ? await eurPriceNow({ platform: "ethereum", address: token }) : await nativePrice;
+  return worthShowing(amount.amount, price, token === null || isWellKnownToken("eth", token));
 }
 
-function candidateOf({ id, direction, time, pending, amount }: Mined): Candidate {
-  return { id, direction, time, pending, amount };
+function candidateOf({ id, direction, time, pending, amount, token }: Mined): Candidate {
+  return { id, direction, time, pending, amount, ...(token && { token }) };
 }

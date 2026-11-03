@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isBusy, isTimeout, summarize, takeRecent, worthShowing } from "./rules";
+import { isBusy, isTimeout, isWellKnownToken, summarize, takeRecent, worthShowing } from "./rules";
 import type { Candidate } from "./types";
 
 const NOW = 1_800_000_000;
@@ -21,20 +21,48 @@ function five(fifth: number): Candidate[] {
 
 describe("worthShowing", () => {
   it("skips transfers worth less than a cent", () => {
-    expect(worthShowing(0.001, 2000, false)).toBe(true); // €2
-    expect(worthShowing(0.000004, 2000, false)).toBe(false); // €0.008
-    expect(worthShowing(0.000005, 2000, false)).toBe(true); // €0.01
+    expect(worthShowing(0.001, 2000, true)).toBe(true); // €2
+    expect(worthShowing(0.000004, 2000, true)).toBe(false); // €0.008
+    expect(worthShowing(0.000005, 2000, true)).toBe(true); // €0.01
+    expect(worthShowing(500, 0.00001, false)).toBe(false);
   });
 
   it("skips nothing-transfers, whatever they are", () => {
-    expect(worthShowing(0, 2000, false)).toBe(false);
-    expect(worthShowing(0, null, false)).toBe(false);
-    expect(worthShowing(-1, 2000, true)).toBe(false);
+    expect(worthShowing(0, 2000, true)).toBe(false);
+    expect(worthShowing(0, "unavailable", true)).toBe(false);
+    expect(worthShowing(0, "unknown", true)).toBe(false);
+    expect(worthShowing(-1, 2000, false)).toBe(false);
   });
 
-  it("skips a token without a price, but not a coin whose price is unknown right now", () => {
-    expect(worthShowing(1000, null, true)).toBe(false);
-    expect(worthShowing(0.5, null, false)).toBe(true);
+  it("skips a token nobody prices", () => {
+    expect(worthShowing(1000, "unknown", false)).toBe(false);
+  });
+
+  it("keeps a real coin or well-known token the price service has nothing on", () => {
+    expect(worthShowing(0.5, "unknown", true)).toBe(true);
+  });
+
+  it("keeps everything while the price service is down: an outage hides no real receive", () => {
+    expect(worthShowing(400, "unavailable", false)).toBe(true);
+    expect(worthShowing(0.5, "unavailable", true)).toBe(true);
+  });
+});
+
+describe("isWellKnownToken", () => {
+  it("knows the big stablecoins and wrapped coins, by contract or mint", () => {
+    expect(isWellKnownToken("eth", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")).toBe(true);
+    expect(isWellKnownToken("eth", "0xdac17f958d2ee523a2206206994597c13d831ec7")).toBe(true);
+    expect(isWellKnownToken("eth", "0x6b175474e89094c44da98b954eedeac495271d0f")).toBe(true);
+    expect(isWellKnownToken("eth", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")).toBe(true);
+    expect(isWellKnownToken("eth", "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599")).toBe(true);
+    expect(isWellKnownToken("sol", "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")).toBe(true);
+    expect(isWellKnownToken("sol", "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB")).toBe(true);
+  });
+
+  it("does not know anything else, and does not mix the chains up", () => {
+    expect(isWellKnownToken("eth", "0x6cfc18d2bfd14b08b1ad711e9ec94049991305d6")).toBe(false);
+    expect(isWellKnownToken("sol", "83eAEViwWvrwBxXNQUN5pLaYMc1i5eurMzkwEs9zURB")).toBe(false);
+    expect(isWellKnownToken("sol", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")).toBe(false);
   });
 });
 

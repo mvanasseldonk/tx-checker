@@ -8,6 +8,7 @@ import { PasteScreen } from "@/components/PasteScreen";
 import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
 import { LOOKUP_ADDRESS } from "@/lib/address/lookup";
+import { showReceived } from "@/lib/address/received";
 import type { Candidate } from "@/lib/address/types";
 import { detectAddress, type Chain } from "@/lib/detect";
 import { LOOKUP } from "@/lib/lookup";
@@ -55,13 +56,23 @@ async function LiveAddress({ chain, address }: { chain: Chain; address: string }
       </AddressNote>
     );
   }
-  return <Latest chain={chain} candidates={activity.candidates} />;
+  return <Latest chain={chain} address={address} candidates={activity.candidates} />;
 }
 
 /** The newest transaction as a normal result, with the others a tap away. */
-async function Latest({ chain, candidates }: { chain: Chain; candidates: Candidate[] }) {
+async function Latest({
+  chain,
+  address,
+  candidates,
+}: {
+  chain: Chain;
+  address: string;
+  candidates: Candidate[];
+}) {
   const [latest] = candidates;
-  const status = await LOOKUP[chain](latest.id).catch((error: unknown) => {
+  const status = await LOOKUP[chain](latest.id)
+    .then((found) => showReceived(chain, address, found, latest))
+    .catch((error: unknown) => {
     unstable_rethrow(error);
     console.error(`Looking up ${latest.id} failed`, error);
     return null;

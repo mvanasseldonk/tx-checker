@@ -1,4 +1,5 @@
 import type { Chain } from "../detect";
+import type { Price } from "../prices";
 import type { AddressActivity, Candidate } from "./types";
 
 /** How many transactions "Not this one?" lists. */
@@ -13,15 +14,36 @@ export const SOL_DUST = 0.001;
 // which transaction the user means. A starting point, to be tuned.
 const BUSY_SECONDS: Record<Chain, number> = { eth: 10 * 60, sol: 10 * 60, btc: 60 * 60 };
 
+// Tokens everybody knows: never taken for spam because the price service has nothing on them.
+// ETH by contract (lowercase), SOL by mint.
+const WELL_KNOWN: Record<Exclude<Chain, "btc">, Set<string>> = {
+  eth: new Set([
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
+    "0xdac17f958d2ee523a2206206994597c13d831ec7", // USDT
+    "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
+    "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", // WBTC
+  ]),
+  sol: new Set([
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+  ]),
+};
+
+export function isWellKnownToken(chain: Exclude<Chain, "btc">, token: string): boolean {
+  return WELL_KNOWN[chain].has(token);
+}
+
 /**
- * Should an incoming transfer be shown? `price` is the euro price of one unit, null when unknown.
- * A coin without a known price may still be real (the price service can be down), but a token
- * nobody prices is spam.
+ * Should an incoming transfer be shown? `real` is true for a chain's own coin or a well-known
+ * token. With a price, only its value counts. Without one, a real coin or token is kept, and so
+ * is anything when the price service could not be asked: an outage must not hide a real
+ * receive. Only a token that the price service has never heard of is spam.
  */
-export function worthShowing(amount: number, price: number | null, isToken: boolean): boolean {
+export function worthShowing(amount: number, price: Price, real: boolean): boolean {
   if (amount <= 0) return false;
-  if (price === null) return !isToken;
-  return amount * price >= SPAM_EUR;
+  if (typeof price === "number") return amount * price >= SPAM_EUR;
+  return price === "unavailable" || real;
 }
 
 /** Too busy to tell which transaction is meant: the 5th newest is still very recent. */

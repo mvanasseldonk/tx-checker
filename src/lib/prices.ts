@@ -22,6 +22,21 @@ export async function eurPrice(coin: Coin, at: number | null): Promise<number | 
   }
 }
 
+/** A price that is known, that CoinGecko does not have, or that could not be asked for right now. */
+export type Price = number | "unknown" | "unavailable";
+
+/**
+ * The current euro price, telling "nobody prices this" (CoinGecko says so: 404 or nothing)
+ * from "could not find out" (an error, a rate limit or a timeout).
+ */
+export async function eurPriceNow(coin: Coin): Promise<Price> {
+  try {
+    return (await currentPrice(coin)) ?? "unknown";
+  } catch {
+    return "unavailable";
+  }
+}
+
 // Failed requests throw so that they are never cached.
 async function get(path: string): Promise<unknown> {
   const key = process.env.COINGECKO_API_KEY;

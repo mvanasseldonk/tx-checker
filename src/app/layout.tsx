@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TxChecker",
-  description: "Did my transaction go through? Paste an Ethereum or Solana transaction.",
+  description: "Did my transaction go through? Paste an ETH, SOL or BTC transaction or address.",
 };
 
 export const viewport: Viewport = {

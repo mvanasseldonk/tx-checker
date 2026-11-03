@@ -9,6 +9,8 @@ export type Candidate = {
   pending: boolean;
   // What moved, where it is cheap to tell: the main coin or token of the transaction.
   amount: { amount: number; symbol: string } | null;
+  // The token the amount is in: an ETH contract (lowercase) or a SOL mint. Absent for a chain's own coin.
+  token?: string;
 };
 
 export type AddressActivity =

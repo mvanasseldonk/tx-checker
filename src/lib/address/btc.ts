@@ -1,6 +1,6 @@
 import { cacheLife } from "next/cache";
 import { getJson, sentOutputs } from "../btc";
-import { eurPrice } from "../prices";
+import { eurPriceNow } from "../prices";
 import { isTimeout, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate, Direction } from "./types";
 
@@ -21,10 +21,10 @@ type Activity = Omit<Candidate, "amount"> & { sats: number };
 export async function lookupBtcAddress(address: string): Promise<AddressActivity> {
   try {
     const activity = await recentTransactions(address);
-    const price = eurPrice("bitcoin", null);
+    const price = eurPriceNow("bitcoin");
     const shown = await takeRecent(activity, async ({ sats, ...tx }) => {
       const amount = sats / SATS_PER_BTC;
-      if (tx.direction === "received" && !worthShowing(amount, await price, false)) return null;
+      if (tx.direction === "received" && !worthShowing(amount, await price, true)) return null;
       return { ...tx, amount: { amount, symbol: "BTC" } };
     });
     return summarize("btc", shown, Date.now() / 1000);

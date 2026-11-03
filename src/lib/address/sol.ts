@@ -1,6 +1,6 @@
-import { eurPrice } from "../prices";
+import { eurPriceNow, type Price } from "../prices";
 import { LAMPORTS_PER_SOL, rpc, tokenSymbol, WRAPPED_SOL } from "../sol";
-import { isTimeout, SOL_DUST, summarize, takeRecent, worthShowing } from "./rules";
+import { isTimeout, isWellKnownToken, SOL_DUST, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate, Direction } from "./types";
 
 // Read this many, then drop the spam: a wallet that gets a lot of dust still needs a few real ones.
@@ -53,7 +53,7 @@ export async function lookupSolAddress(address: string): Promise<AddressActivity
         maxSupportedTransactionVersion: 1,
       },
     ]);
-    const solEur = eurPrice("solana", null);
+    const solEur = eurPriceNow("solana");
     const shown = await takeRecent(
       data.map((tx) => movementOf(tx, address)),
       (movement) => describe(movement, solEur),
@@ -95,7 +95,7 @@ export function movementOf(tx: SolTransaction, address: string): Movement {
 }
 
 /** The transaction as a candidate, or null when it is spam (received transfers only). */
-async function describe(movement: Movement, solEur: Promise<number | null>): Promise<Candidate | null> {
+async function describe(movement: Movement, solEur: Promise<Price>): Promise<Candidate | null> {
   const { id, direction, time } = movement;
   const candidate = { id, direction, time, pending: false };
   // Same sign as the direction: what left on a send, what arrived on a receive.
@@ -106,7 +106,7 @@ async function describe(movement: Movement, solEur: Promise<number | null>): Pro
 
   if (direction === "sent") {
     const token = tokens[0];
-    if (token) return { ...candidate, amount: await tokenAmount(token) };
+    if (token) return { ...candidate, ...(await tokenAmount(token)) };
     const sol = Math.abs(movement.sol);
     return { ...candidate, amount: movement.sol < 0 ? { amount: sol, symbol: "SOL" } : null };
   }
@@ -114,13 +114,15 @@ async function describe(movement: Movement, solEur: Promise<number | null>): Pro
   // Enough SOL, or a token somebody puts a price on, makes it real.
   if (movement.sol >= SOL_DUST) return { ...candidate, amount: { amount: movement.sol, symbol: "SOL" } };
   for (const token of tokens) {
-    const price =
-      token.mint === WRAPPED_SOL ? await solEur : await eurPrice({ platform: "solana", address: token.mint }, null);
-    if (worthShowing(token.amount, price, true)) return { ...candidate, amount: await tokenAmount(token) };
+    const wrapped = token.mint === WRAPPED_SOL;
+    const price = wrapped ? await solEur : await eurPriceNow({ platform: "solana", address: token.mint });
+    if (worthShowing(token.amount, price, wrapped || isWellKnownToken("sol", token.mint))) {
+      return { ...candidate, ...(await tokenAmount(token)) };
+    }
   }
   return null;
 }
 
 async function tokenAmount({ mint, amount }: { mint: string; amount: number }) {
-  return { amount: Math.abs(amount), symbol: await tokenSymbol(mint) };
+  return { amount: { amount: Math.abs(amount), symbol: await tokenSymbol(mint) }, token: mint };
 }
