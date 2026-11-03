@@ -44,9 +44,95 @@
   }
 }
 
+@theme static {
+  /*
+   * One family of motion: the curve of the morph between the circles, three durations and a gentle
+   * overshoot for things that settle. Nothing runs longer than 600ms, and nothing but transform and
+   * opacity moves (plus the colour of the arrow button).
+   */
+  --ease-ancoro: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-settle: cubic-bezier(0.34, 1.25, 0.64, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 400ms;
+}
+
+/*
+ * motion-safe: and motion-reduce: follow the system setting, and also the switch of the motion lab
+ * (/motion, temporary for the S14 review), which sets data-reduce-motion on <html>.
+ */
+@custom-variant motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(:root:not([data-reduce-motion]) *) {
+      @slot;
+    }
+  }
+}
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where(:root[data-reduce-motion] *) {
+    @slot;
+  }
+}
+
+/*
+ * The fonts, and the animations of the new motion. Inline, so that --delay and --i (the place in a row) are read on the element
+ * that animates, not on the page.
+ */
 @theme inline {
   --font-sans: var(--font-instrument-sans), system-ui, sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, monospace;
+
+  /* The result arrives: the circle settles with a light overshoot, then the words and the header follow. */
+  --animate-land: land var(--duration-slow) var(--ease-ancoro);
+  /* Fades up a few px. --delay and --i (the place in a row, times --stagger) come from the element. */
+  --animate-rise: rise var(--duration-base) var(--ease-ancoro) calc(var(--delay, 0ms) + var(--i, 0) * var(--stagger, 40ms)) backwards;
+  --animate-rise-fast: rise var(--duration-fast) var(--ease-ancoro) calc(var(--delay, 0ms) + var(--i, 0) * var(--stagger, 40ms)) backwards;
+  --animate-header: fade-in 250ms var(--ease-ancoro) 300ms backwards;
+  /* A word that changes: the old one slides up and out, the new one comes in from below. */
+  --animate-swap-out: swap-out var(--duration-fast) var(--ease-ancoro) both;
+  --animate-swap-in: swap-in var(--duration-base) var(--ease-ancoro) backwards;
+  /* A check that replaces an icon. */
+  --animate-pop: pop 250ms var(--ease-ancoro);
+
+  @keyframes land {
+    40% {
+      transform: scale(1.02);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(7px);
+    }
+  }
+  @keyframes swap-out {
+    to {
+      opacity: 0;
+      transform: translateY(-0.45em);
+    }
+  }
+  @keyframes swap-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.55em);
+    }
+  }
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    55% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 }
 
 /* The status word and the amounts: Fraunces, with lining figures. */
