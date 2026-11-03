@@ -1,10 +1,9 @@
-import Link from "next/link";
 import type { Chain } from "@/lib/detect";
 import { HomeMark } from "./brand/Brand";
 import { ChainLogo } from "./ChainLogo";
-import { ClipboardIcon } from "./icons";
+import { PasteAgainButton } from "./PasteAgainButton";
 
-/** The page around the status circle: chain logo top left, the small mark (home) in the middle, a way back to Paste top right. */
+/** The page around the status circle: chain logo top left, the small mark (home) in the middle, a button that pastes the next one top right. */
 export function Frame({
   chain,
   pasteAgain = false,
@@ -20,15 +19,7 @@ export function Frame({
         <div className="flex items-center">{chain && <ChainLogo chain={chain} />}</div>
         <HomeMark />
         <div className="flex items-center justify-end">
-          {pasteAgain && (
-            <Link
-              href="/"
-              aria-label="Paste another transaction or address"
-              className="flex size-11 items-center justify-center rounded-full bg-ink text-white transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              <ClipboardIcon size={18} strokeWidth={1.8} />
-            </Link>
-          )}
+          {pasteAgain && <PasteAgainButton />}
         </div>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-7 pb-10">{children}</div>
