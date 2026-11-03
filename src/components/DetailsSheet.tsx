@@ -5,7 +5,8 @@ import type { Chain } from "@/lib/detect";
 import { explorerFor } from "@/lib/explorer";
 import { formatAmount, formatEur, formatTime, shortAddress } from "@/lib/format";
 import type { TxAmount, TxDetails } from "@/lib/status";
-import { CloseIcon, CopyIcon } from "./icons";
+import { shareLink, txLink, type ShareOutcome } from "@/lib/share";
+import { CheckIcon, CloseIcon, CopyIcon, ShareIcon } from "./icons";
 
 const CLOSE_MS = 250;
 // Dragged this far down, or flicked this fast, the sheet closes.
@@ -136,7 +137,7 @@ export function DetailsSheet({
             <dl className="touch-pan-y overflow-y-auto px-6 [@media(min-height:520px)]:touch-none">
               <Fields details={details} notSent={notSent} />
             </dl>
-            <ExplorerLink chain={chain} id={id} />
+            <Actions chain={chain} id={id} />
           </div>
         )}
       </dialog>
@@ -144,24 +145,78 @@ export function DetailsSheet({
   );
 }
 
-/** A way out to the full explorer page of this transaction, below the fields. */
+const NOTICE_MS = 2000;
+
+/** Share the link to this transaction, or go on to the explorer: two equal buttons side by side. */
+function Actions({ chain, id }: { chain: Chain; id: string }) {
+  const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [link, setLink] = useState("");
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  async function share() {
+    // Always the clean link to this transaction: on an address page the current URL carries `?seen=`.
+    const url = txLink(location.origin, id);
+    const result = await shareLink(url, {
+      share: navigator.share?.bind(navigator),
+      canShare: navigator.canShare?.bind(navigator),
+      writeText: navigator.clipboard?.writeText?.bind(navigator.clipboard),
+    });
+    clearTimeout(timer.current);
+    setLink(url);
+    setOutcome(result === "shared" || result === "cancelled" ? null : result);
+    // A failed copy stays on screen: the link below it is the only way left to get the link.
+    if (result === "copied") timer.current = setTimeout(() => setOutcome(null), NOTICE_MS);
+  }
+
+  const copied = outcome === "copied";
+  return (
+    <div className="px-6 pt-4">
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={share}
+          className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-ink px-3 text-[15px] font-medium text-white transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink motion-reduce:transition-none"
+        >
+          {copied ? <CheckIcon size={18} /> : <ShareIcon size={18} />}
+          {copied ? "Link copied" : "Share"}
+        </button>
+        <ExplorerLink chain={chain} id={id} />
+      </div>
+      <p role="status" className={outcome === "failed" ? "pt-3 text-[15px] text-danger" : "sr-only"}>
+        {copied && "Link copied"}
+        {outcome === "failed" && "Copy failed. Select the link below."}
+      </p>
+      {outcome === "failed" && (
+        <input
+          readOnly
+          aria-label="Link to this transaction"
+          value={link}
+          onFocus={(event) => event.currentTarget.select()}
+          className="mt-2 min-h-12 w-full rounded-2xl border border-ink/15 bg-ground px-4 font-mono text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-ink"
+        />
+      )}
+    </div>
+  );
+}
+
+/** A way out to the full explorer page of this transaction. */
 function ExplorerLink({ chain, id }: { chain: Chain; id: string }) {
   const { name, url } = explorerFor(chain, id);
   return (
-    <div className="px-6 pt-4">
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-ink/15 text-[15px] font-medium text-ink active:bg-ground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-      >
-        {name}
-        <span aria-hidden="true" className="ml-1">
-          ↗
-        </span>
-        <span className="sr-only">(opens in a new tab)</span>
-      </a>
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex min-h-12 min-w-0 flex-1 items-center justify-center rounded-2xl border border-ink/15 px-3 text-[15px] font-medium text-ink active:bg-ground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+    >
+      {name}
+      <span aria-hidden="true" className="ml-1">
+        ↗
+      </span>
+      <span className="sr-only">(opens in a new tab)</span>
+    </a>
   );
 }
 
