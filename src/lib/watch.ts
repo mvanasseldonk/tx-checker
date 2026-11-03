@@ -52,3 +52,23 @@ export function watchDeadline(startedAt: number): number {
 export function isWatching(startedAt: number, now: number): boolean {
   return now < watchDeadline(startedAt);
 }
+
+/** After this many looks in a row that failed, the page says it cannot reach the network. */
+export const FAILURES_BEFORE_NOTICE = 3;
+
+/** How many looks in a row have failed, once the next one has come back. */
+export function countFailures(failures: number, failed: boolean): number {
+  return failed ? failures + 1 : 0;
+}
+
+export function isStruggling(failures: number): boolean {
+  return failures >= FAILURES_BEFORE_NOTICE;
+}
+
+/**
+ * What an address page shows after a look: the new screen, unless the look failed and there is a
+ * good screen to keep. Only the first look of a page may fail into "Try again".
+ */
+export function screenAfterLook<T>(failed: boolean, fresh: T, kept: T | null): T {
+  return failed && kept !== null ? kept : fresh;
+}

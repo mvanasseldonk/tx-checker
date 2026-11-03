@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Heading } from "./Heading";
 import { Ring } from "./StatusCircle";
+import { useWatch } from "./Watch";
 
 type Verdict = { word: string; line: string };
 
@@ -20,6 +21,8 @@ export function StillLooking({
   stopped: Verdict;
 }) {
   const router = useRouter();
+  // On an address page the watch looks again already.
+  const watched = useWatch() !== null;
   const [secondsLeft, setSecondsLeft] = useState(seconds);
 
   useEffect(() => {
@@ -27,10 +30,10 @@ export function StillLooking({
     const timer = setTimeout(() => {
       const next = secondsLeft - 1;
       setSecondsLeft(next);
-      if (next > 0 && (seconds - next) % refreshSeconds === 0) router.refresh();
+      if (!watched && next > 0 && (seconds - next) % refreshSeconds === 0) router.refresh();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [secondsLeft, seconds, refreshSeconds, router]);
+  }, [secondsLeft, seconds, refreshSeconds, router, watched]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const rest = String(secondsLeft % 60).padStart(2, "0");

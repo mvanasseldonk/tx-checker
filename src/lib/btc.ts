@@ -1,3 +1,4 @@
+import { hedged } from "./address/hedge";
 import { eurPrice } from "./prices";
 import { detailAmount, type TxDetails, type TxStatus, type TxValue } from "./status";
 
@@ -12,6 +13,8 @@ const PROJECTED_BLOCKS = 8;
 const TIMEOUT_MS = 2500;
 const RETRY_MS = 400;
 const SLOW_MS = 2000;
+// Slower than this and Blockstream is asked as well: the first answer wins.
+const HEDGE_MS = 1200;
 
 type Output = { scriptpubkey_address?: string; value: number };
 
@@ -49,9 +52,21 @@ export async function getJson<T>(path: string, timeout?: number, api?: string): 
   return (await get(path, timeout, api))?.json() ?? null;
 }
 
+/**
+ * A call both mempool.space and Blockstream can answer, as the first answer of the two. Blockstream
+ * is only asked when mempool.space is slow or fails. Not for `/v1/...`: Blockstream does not have those.
+ */
+function getEither(path: string): Promise<Response | null> {
+  return hedged(
+    () => get(path),
+    () => get(path, TIMEOUT_MS, BACKUP_API),
+    HEDGE_MS,
+  );
+}
+
 /** Looks up a Bitcoin mainnet transaction and what to tell the user about it. */
 export async function lookupBtc(txid: string): Promise<TxStatus> {
-  const tx = await getJson<BtcTransaction>(`/tx/${txid}`);
+  const tx: BtcTransaction | null = await (await getEither(`/tx/${txid}`))?.json() ?? null;
   if (!tx) return replacedOrNotFound(txid);
 
   const { block_height: height, block_time: time } = tx.status;
@@ -81,14 +96,15 @@ export async function lookupBtc(txid: string): Promise<TxStatus> {
 
 // A dropped transaction is just gone, but one replaced through RBF is remembered by what replaced it.
 async function replacedOrNotFound(txid: string): Promise<TxStatus> {
-  const rbf = await getJson<{ replacements: { tx: { txid: string } } | null }>(`/v1/tx/${txid}/rbf`);
+  // Only mempool.space knows about replacements. Without them it is "not found", as before RBF was looked at.
+  const rbf = await getJson<{ replacements: { tx: { txid: string } } | null }>(`/v1/tx/${txid}/rbf`).catch(() => null);
   // The tree's root is the newest version; for a transaction that replaced others, that is itself.
   const by = rbf?.replacements?.tx.txid;
   return by && by !== txid ? { kind: "replaced", by } : { kind: "notFound" };
 }
 
 async function confirmationsOf(blockHeight: number): Promise<number> {
-  const tip = Number(await (await get("/blocks/tip/height"))?.text());
+  const tip = Number(await (await getEither("/blocks/tip/height"))?.text());
   // The tip can lag a block behind a transaction that was just mined.
   return Math.max(1, tip - blockHeight + 1);
 }

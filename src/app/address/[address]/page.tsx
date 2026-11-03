@@ -57,10 +57,10 @@ async function LiveAddress({
     console.error(`Looking up address ${address} failed`, error);
     return null;
   });
-  // A failed look in the middle of watching does not end it: the next one may work.
+  // A failed look in the middle of watching does not end it, nor replace what is shown: the next one may work.
   if (!activity) {
     const unavailable = <Unavailable chain={chain} />;
-    return opened ? watching(chain, opened, opened[0] ?? null, unavailable) : unavailable;
+    return opened ? watching(chain, opened, opened[0] ?? null, unavailable, { failed: true }) : unavailable;
   }
   if (activity.kind === "busy") {
     return (
@@ -89,7 +89,7 @@ async function LiveAddress({
       />,
     );
   }
-  if (!status) return watching(chain, seen, latest, <Unavailable chain={chain} />);
+  if (!status) return watching(chain, seen, latest, <Unavailable chain={chain} />, { failed: true });
   const ringMoves = status.kind === "pending" || status.kind === "included";
   return watching(
     chain,
@@ -113,13 +113,19 @@ async function LiveAddress({
       }
     />,
     // Included, a transaction is on its way to Final: watch for as long as that takes.
-    status.kind === "included",
+    { hold: status.kind === "included" },
   );
 }
 
-function watching(chain: Chain, seen: string[], latest: string | null, page: React.ReactNode, hold = false) {
+function watching(
+  chain: Chain,
+  seen: string[],
+  latest: string | null,
+  page: React.ReactNode,
+  { hold = false, failed = false } = {},
+) {
   return (
-    <Watch seconds={WATCH_SECONDS[chain]} seen={seen} latest={latest} hold={hold}>
+    <Watch seconds={WATCH_SECONDS[chain]} seen={seen} latest={latest} hold={hold} failed={failed}>
       {page}
     </Watch>
   );

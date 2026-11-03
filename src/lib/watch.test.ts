@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Candidate } from "./address/types";
 import {
+  countFailures,
+  FAILURES_BEFORE_NOTICE,
   isRecent,
+  isStruggling,
   isWatching,
   parseSeen,
+  screenAfterLook,
   seenParam,
   shownCandidate,
   WATCH_MINUTES,
@@ -111,5 +115,33 @@ describe("watching", () => {
 
   it("looks again every 12 s on ETH, 5 s on SOL and 30 s on BTC", () => {
     expect(WATCH_SECONDS).toEqual({ eth: 12, sol: 5, btc: 30 });
+  });
+});
+
+describe("failed looks", () => {
+  it("counts failures in a row, and starts again after a good look", () => {
+    expect(countFailures(0, true)).toBe(1);
+    expect(countFailures(2, true)).toBe(3);
+    expect(countFailures(2, false)).toBe(0);
+  });
+
+  it("says it is struggling from the third failure in a row", () => {
+    expect(FAILURES_BEFORE_NOTICE).toBe(3);
+    expect(isStruggling(0)).toBe(false);
+    expect(isStruggling(2)).toBe(false);
+    expect(isStruggling(3)).toBe(true);
+    expect(isStruggling(10)).toBe(true);
+  });
+
+  it("keeps the last good screen when a look fails", () => {
+    expect(screenAfterLook(true, "try again", "result")).toBe("result");
+  });
+
+  it("shows what a good look brings", () => {
+    expect(screenAfterLook(false, "new", "result")).toBe("new");
+  });
+
+  it("lets the first look fail into the try again screen", () => {
+    expect(screenAfterLook(true, "try again", null)).toBe("try again");
   });
 });

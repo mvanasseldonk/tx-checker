@@ -5,7 +5,7 @@ import { shortAddress } from "@/lib/format";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
 import { Ring } from "./StatusCircle";
-import { StoppedLine, useWatch } from "./Watch";
+import { STRUGGLING, StoppedLine, useWatch } from "./Watch";
 
 /**
  * An address with no new transaction: a grey circle with a quiet arc travelling round it while the
@@ -44,6 +44,8 @@ export function NothingNew({
       <Heading word="Nothing new yet" color="text-gone">
         {stopped ? (
           <StoppedLine />
+        ) : watch?.struggling ? (
+          STRUGGLING
         ) : empty ? (
           "No transactions yet · watching"
         ) : (
