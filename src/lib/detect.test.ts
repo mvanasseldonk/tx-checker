@@ -25,6 +25,8 @@ function signature(fill: (i: number) => number): string {
   return base58Encode(Uint8Array.from({ length: 64 }, (_, i) => fill(i)));
 }
 
+const BTC_TXID = "9fabe65d41545cffe3cb321bbbe90bb2fcf835e7db909af0f51166c018153034";
+
 const SOL_SIG = signature((i) => (i * 37 + 11) % 256);
 
 describe("detectTransaction", () => {
@@ -34,6 +36,15 @@ describe("detectTransaction", () => {
       chain: "eth",
       id: ETH_HASH,
     });
+  });
+
+  it("recognises a Bitcoin txid and normalises it to lowercase", () => {
+    expect(detectTransaction(BTC_TXID.toUpperCase())).toEqual({ ok: true, chain: "btc", id: BTC_TXID });
+  });
+
+  it("still reads a hash with 0x as Ethereum, and one without as Bitcoin", () => {
+    expect(detectTransaction(`0x${BTC_TXID}`)).toMatchObject({ ok: true, chain: "eth" });
+    expect(detectTransaction(ETH_HASH.slice(2))).toMatchObject({ ok: true, chain: "btc" });
   });
 
   it("recognises a Solana signature", () => {
@@ -73,9 +84,26 @@ describe("detectTransaction", () => {
     ).toMatchObject({ ok: true, chain: "sol" });
   });
 
+  it("extracts the txid from a mempool.space or Blockstream link", () => {
+    for (const link of [
+      `https://mempool.space/tx/${BTC_TXID}`,
+      `mempool.space/tx/${BTC_TXID}`,
+      `https://mempool.space/nl/tx/${BTC_TXID}`,
+      `https://mempool.space/tx/${BTC_TXID}?mode=details#flow`,
+      `https://blockstream.info/tx/${BTC_TXID}`,
+      `https://www.blockstream.info/tx/${BTC_TXID}/`,
+    ]) {
+      expect(detectTransaction(link), link).toEqual({ ok: true, chain: "btc", id: BTC_TXID });
+    }
+  });
+
   it("rejects testnet explorer links", () => {
     expect(detectTransaction(`https://sepolia.etherscan.io/tx/${ETH_HASH}`)).toEqual({ ok: false });
     expect(detectTransaction(`https://solscan.io/tx/${SOL_SIG}?cluster=devnet`)).toEqual({ ok: false });
+    for (const network of ["testnet", "testnet4", "signet"]) {
+      expect(detectTransaction(`https://mempool.space/${network}/tx/${BTC_TXID}`)).toEqual({ ok: false });
+    }
+    expect(detectTransaction(`https://blockstream.info/testnet/tx/${BTC_TXID}`)).toEqual({ ok: false });
   });
 
   it("rejects links to other sites or other explorer pages", () => {
@@ -83,6 +111,9 @@ describe("detectTransaction", () => {
     expect(detectTransaction(`https://etherscan.io/address/${ETH_HASH}`)).toEqual({ ok: false });
     expect(detectTransaction(`https://etherscan.io/tx/${SOL_SIG}`)).toEqual({ ok: false });
     expect(detectTransaction(`https://solscan.io/tx/${ETH_HASH}`)).toEqual({ ok: false });
+    expect(detectTransaction(`https://mempool.space/address/${BTC_TXID}`)).toEqual({ ok: false });
+    expect(detectTransaction(`https://mempool.space/tx/${ETH_HASH}`)).toEqual({ ok: false });
+    expect(detectTransaction(`https://etherscan.io/tx/${BTC_TXID}`)).toEqual({ ok: false });
   });
 
   it("rejects input that is not a transaction", () => {
@@ -91,6 +122,9 @@ describe("detectTransaction", () => {
       "hello",
       ETH_HASH.slice(0, -1),
       `${ETH_HASH}0`,
+      BTC_TXID.slice(0, -1),
+      `${BTC_TXID}0`,
+      "g".repeat(64),
       `0x${"g".repeat(64)}`,
       "0x3f5Ca91E3f5Ca91E3f5Ca91E3f5Ca91E3f5Ca91E", // an address, not a hash
       "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", // a Solana address
@@ -117,5 +151,6 @@ describe("shortId", () => {
   it("shortens hashes for display", () => {
     expect(shortId("eth", ETH_HASH)).toBe("0x8f2e…c41b");
     expect(shortId("sol", "5VERv8NMvzbJ")).toBe("5VER…vzbJ");
+    expect(shortId("btc", BTC_TXID)).toBe("9fab…3034");
   });
 });

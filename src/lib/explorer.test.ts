@@ -10,6 +10,14 @@ describe("explorerFor", () => {
     });
   });
 
+  it("links a Bitcoin txid to mempool.space", () => {
+    const txid = "9fabe65d41545cffe3cb321bbbe90bb2fcf835e7db909af0f51166c018153034";
+    expect(explorerFor("btc", txid)).toEqual({
+      name: "mempool.space",
+      url: `https://mempool.space/tx/${txid}`,
+    });
+  });
+
   it("links a Solana signature to Solscan", () => {
     const signature =
       "3kMv7f5Squcxeyx3nCJoZmgKsgA1DJS7w3zCTZs46zqcf21braHGygHzZ2W6RxKMJW3G8wUbUx6wwLbUkTtKZi6e";

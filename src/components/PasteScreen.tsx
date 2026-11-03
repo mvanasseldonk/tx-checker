@@ -5,7 +5,7 @@ import { useState } from "react";
 import { detectTransaction } from "@/lib/detect";
 import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
 
-const INVALID_MESSAGE = "Not an ETH or SOL transaction";
+const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction";
 
 type Mode = "paste" | "type";
 

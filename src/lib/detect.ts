@@ -1,4 +1,4 @@
-export type Chain = "eth" | "sol";
+export type Chain = "eth" | "sol" | "btc";
 
 export type Detection =
   | { ok: true; chain: Chain; id: string }
@@ -7,6 +7,8 @@ export type Detection =
 const INVALID: Detection = { ok: false };
 
 const ETH_HASH = /^0x[0-9a-fA-F]{64}$/;
+// Without 0x, so a bare Ethereum hash is read as Bitcoin.
+const BTC_TXID = /^[0-9a-fA-F]{64}$/;
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const BASE58 = /^[1-9A-HJ-NP-Za-km-z]+$/;
@@ -16,11 +18,13 @@ const SOLANA_SIGNATURE_BYTES = 64;
 const EXPLORERS: Record<string, Chain> = {
   "etherscan.io": "eth",
   "solscan.io": "sol",
+  "mempool.space": "btc",
+  "blockstream.info": "btc",
 };
 const SOLSCAN_MAINNET_CLUSTERS = new Set(["mainnet", "mainnet-beta"]);
 
 /**
- * Recognises a pasted Ethereum hash, Solana signature or explorer link.
+ * Recognises a pasted Ethereum hash, Bitcoin txid, Solana signature or explorer link.
  * Runs entirely locally, so invalid input never costs an API call.
  */
 export function detectTransaction(input: string): Detection {
@@ -31,6 +35,7 @@ export function detectTransaction(input: string): Detection {
 
 function detectId(id: string): Detection {
   if (ETH_HASH.test(id)) return { ok: true, chain: "eth", id: id.toLowerCase() };
+  if (BTC_TXID.test(id)) return { ok: true, chain: "btc", id: id.toLowerCase() };
   if (isSolanaSignature(id)) return { ok: true, chain: "sol", id };
   return INVALID;
 }
@@ -48,7 +53,8 @@ function detectFromExplorerUrl(text: string): Detection {
   }
 
   const chain = EXPLORERS[url.hostname.toLowerCase().replace(/^www\./, "")];
-  const match = url.pathname.match(/^\/tx\/([^/]+)\/?$/);
+  // mempool.space may put a language first (/nl/tx/…); /testnet/tx/ and /signet/tx/ never match.
+  const match = url.pathname.match(/^\/(?:[a-z]{2}\/)?tx\/([^/]+)\/?$/);
   if (!chain || !match) return INVALID;
 
   const cluster = url.searchParams.get("cluster");
@@ -92,4 +98,4 @@ export function shortId(chain: Chain, id: string): string {
   return `${id.slice(0, head)}…${id.slice(-4)}`;
 }
 
-export const CHAIN_LABEL: Record<Chain, string> = { eth: "ETH", sol: "SOL" };
+export const CHAIN_LABEL: Record<Chain, string> = { eth: "ETH", sol: "SOL", btc: "BTC" };

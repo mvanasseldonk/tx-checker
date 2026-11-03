@@ -8,7 +8,10 @@ describe("formatAmount", () => {
     expect(formatAmount(1.234567)).toBe("1.2346");
     expect(formatAmount(1204.5)).toBe("1,204.5");
     expect(formatAmount(0.004213)).toBe("0.004213");
-    expect(formatAmount(0.00004)).toBe("<0.0001");
+    expect(formatAmount(0.00004)).toBe("0.00004");
+    expect(formatAmount(0.0000462871)).toBe("0.000046");
+    expect(formatAmount(0.00000546)).toBe("0.0000055");
+    expect(formatAmount(0.000000001)).toBe("<0.00000001");
   });
 });
 

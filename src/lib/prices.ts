@@ -1,7 +1,7 @@
 import { cacheLife } from "next/cache";
 
 /** A chain's own coin, or a token on it by contract address (ETH) or mint (SOL). */
-export type Coin = "ethereum" | "solana" | { platform: "ethereum" | "solana"; address: string };
+export type Coin = "ethereum" | "solana" | "bitcoin" | { platform: "ethereum" | "solana"; address: string };
 
 const API = "https://api.coingecko.com/api/v3";
 const TIMEOUT_MS = 2500;

@@ -7,6 +7,7 @@ import { PasteScreen } from "@/components/PasteScreen";
 import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
 import { detectTransaction, type Chain } from "@/lib/detect";
+import { lookupBtc } from "@/lib/btc";
 import { lookupEth } from "@/lib/eth";
 import { lookupSol } from "@/lib/sol";
 import type { TxStatus } from "@/lib/status";
@@ -34,6 +35,7 @@ function Transaction({ id }: { id: string }) {
 const LOOKUP: Record<Chain, (id: string) => Promise<TxStatus>> = {
   eth: (id) => lookupEth(id as Hash),
   sol: lookupSol,
+  btc: lookupBtc,
 };
 
 async function LiveStatus({ chain, id }: { chain: Chain; id: string }) {
