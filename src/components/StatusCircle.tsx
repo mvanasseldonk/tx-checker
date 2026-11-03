@@ -7,7 +7,9 @@ const CENTER = "104px 104px";
  * A white circle with a ring around it, filled for `progress` (0–1) of the way.
  * `spinning` is the fast spin of "Checking". `following` is the calm motion of a status that is
  * still being followed: the arc travels around the track, or, when `pulse` is set, the leading
- * end of the ring breathes. `still` pauses it where it is.
+ * end of the ring breathes. `still` pauses it where it is. `drawIn` grows the ring from nothing.
+ * `cover` sits between the ring and its content, and `contentClassName` and `contentStyle` style
+ * the content.
  */
 export function Ring({
   color,
@@ -17,6 +19,10 @@ export function Ring({
   following = false,
   pulse = false,
   still = false,
+  drawIn = false,
+  cover,
+  contentClassName = "",
+  contentStyle,
   children,
 }: {
   color: string;
@@ -26,6 +32,10 @@ export function Ring({
   following?: boolean;
   pulse?: boolean;
   still?: boolean;
+  drawIn?: boolean;
+  cover?: React.ReactNode;
+  contentClassName?: string;
+  contentStyle?: React.CSSProperties;
   children?: React.ReactNode;
 }) {
   return (
@@ -54,7 +64,9 @@ export function Ring({
               strokeLinecap="round"
               strokeDasharray={`${CIRCUMFERENCE * progress} ${CIRCUMFERENCE}`}
               transform="rotate(-90 104 104)"
-              className="motion-safe:transition-[stroke-dasharray,stroke] motion-safe:duration-700"
+              className={`motion-safe:transition-[stroke-dasharray,stroke] motion-safe:duration-700 ${
+                drawIn ? "motion-safe:animate-draw" : ""
+              }`}
             />
           </g>
         )}
@@ -75,7 +87,11 @@ export function Ring({
           </g>
         )}
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center">
+      {cover}
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center ${contentClassName}`}
+        style={contentStyle}
+      >
         {children}
       </div>
     </div>

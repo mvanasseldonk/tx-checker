@@ -13,10 +13,23 @@
   /* Motion that says "still watching". Always behind motion-safe: nothing moves under reduced motion. */
   --animate-travel: travel 7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
   --animate-pulse-end: pulse-end 2.6s ease-out infinite;
+  /* A status change: the ring grows in, and the new line fades in once the circle has settled. */
+  --animate-draw: draw 700ms ease-out;
+  --animate-settle-line: fade-in 500ms ease-out 700ms both;
 
   @keyframes travel {
     to {
       transform: rotate(360deg);
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dasharray: 0 616;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
     }
   }
   @keyframes pulse-end {

@@ -72,12 +72,7 @@ export function TxResult({ chain, id, status }: { chain: Chain; id: string; stat
         progress={progressOf(status)}
         {...verdictOf(status)}
       >
-        <Value
-          chain={chain}
-          value={status.value}
-          onDisc={status.kind === "final" || status.kind === "failed"}
-          notSent={status.kind === "failed"}
-        />
+        <Value chain={chain} value={status.value} notSent={status.kind === "failed"} />
       </Following>
       <DetailsSheet chain={chain} id={id} details={status.details} notSent={status.kind === "failed"} />
     </Frame>
@@ -172,12 +167,10 @@ function verdictOf(status: Found): { word: string; wordClass: string; line: Reac
 function Value({
   chain,
   value,
-  onDisc = false,
   notSent = false,
 }: {
   chain: Chain;
   value: TxValue;
-  onDisc?: boolean;
   notSent?: boolean;
 }) {
   const main =
@@ -201,7 +194,12 @@ function Value({
       >
         {main}
       </span>
-      {sub && <span className={`text-[15px] ${onDisc ? "text-white/85" : "text-muted"}`}>{sub}</span>}
+      {sub && (
+        // The circle sets --sub: grey on the ring, soft white on the disc.
+        <span className="text-[15px] text-(--sub) motion-safe:transition-colors motion-safe:duration-[600ms] motion-safe:delay-500">
+          {sub}
+        </span>
+      )}
     </>
   );
 }
