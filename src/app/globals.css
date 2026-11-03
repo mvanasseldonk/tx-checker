@@ -94,8 +94,10 @@
   /* A word that changes: the old one slides up and out, the new one comes in from below. */
   --animate-swap-out: swap-out var(--duration-fast) var(--ease-ancoro) both;
   --animate-swap-in: swap-in var(--duration-base) var(--ease-ancoro) backwards;
-  /* The Paste circle breathes: a soft halo grows out from behind it and fades. Slow, and only while idle. */
+  /* The Paste circle breathes: a soft halo grows out from behind it and fades, and the circle swells a little with
+     it. Slow, in step, and only while idle. */
   --animate-breathe: breathe 3.6s ease-in-out infinite;
+  --animate-swell: swell 3.6s ease-in-out infinite;
   /* A check that replaces an icon. */
   --animate-pop: pop 250ms var(--ease-ancoro);
 
@@ -122,13 +124,18 @@
       transform: translateY(0.55em);
     }
   }
+  @keyframes swell {
+    45% {
+      transform: scale(1.025);
+    }
+  }
   @keyframes breathe {
     0% {
       opacity: 0;
       transform: scale(0.92);
     }
     45% {
-      opacity: 0.5;
+      opacity: 0.38;
     }
     100% {
       opacity: 0;
