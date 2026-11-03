@@ -1,5 +1,6 @@
-import { getJson, sentOutputs } from "../btc";
+import { BACKUP_API, getJson, sentOutputs } from "../btc";
 import { eurPriceNow } from "../prices";
+import { hedged } from "./hedge";
 import { briefly } from "./memo";
 import { isTimeout, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate, Direction } from "./types";
@@ -8,6 +9,8 @@ const SATS_PER_BTC = 1e8;
 // mempool.space can take several seconds on an address it has not looked up before.
 const TIMEOUT_MS = 8000;
 const CACHE_MS = 5000;
+// Slower than this and Blockstream is asked as well: the first answer wins.
+const HEDGE_MS = 2500;
 
 export type AddressTx = {
   txid: string;
@@ -41,7 +44,14 @@ export async function lookupBtcAddress(address: string): Promise<AddressActivity
 // error was (a timeout means "too busy") and could keep a failure.
 function recentTransactions(address: string): Promise<Activity[]> {
   return briefly(address, CACHE_MS, async () => {
-    const txs = await getJson<AddressTx[]>(`/address/${address}/txs`, TIMEOUT_MS);
+    const path = `/address/${address}/txs`;
+    // Blockstream does not list its pending transactions in a known order: with several pending
+    // the newest may not come first. Only an answer that mempool.space is too slow for.
+    const txs = await hedged(
+      () => getJson<AddressTx[]>(path, TIMEOUT_MS),
+      () => getJson<AddressTx[]>(path, TIMEOUT_MS, BACKUP_API),
+      HEDGE_MS,
+    );
     return newestFirst(txs ?? []).map((tx) => toActivity(tx, address));
   });
 }
