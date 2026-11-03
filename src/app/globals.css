@@ -126,20 +126,20 @@
   }
   @keyframes swell {
     45% {
-      transform: scale(1.025);
+      transform: scale(1.05);
     }
   }
   @keyframes breathe {
     0% {
       opacity: 0;
-      transform: scale(0.92);
+      transform: scale(0.96);
     }
     45% {
-      opacity: 0.38;
+      opacity: 0.3;
     }
     100% {
       opacity: 0;
-      transform: scale(1.14);
+      transform: scale(1.08);
     }
   }
   @keyframes pop {

@@ -6,7 +6,7 @@ import { ClipboardIcon } from "./icons";
 /**
  * The big Paste button. It morphs into the status circle of the next page (`morph`), and shakes "no" through
  * `buttonRef` when what was pasted is not recognised; `invalid` rings it in red.
- * While `pulse` is on it invites: the circle swells by 2.5% and a soft halo, 24px beyond its rim, breathes out from
+ * While `pulse` is on it invites: the circle swells by 5% and a soft halo, 12px beyond its rim, breathes out from
  * behind it, in step (3.6 s a cycle, transform and opacity only). `pulse` is off once a paste is being read, so the
  * circle is back at its size before it morphs. Both give way while the button is pressed and while it shakes, and
  * neither runs under reduced motion.
@@ -43,9 +43,9 @@ export function PasteCircle({
       {pulse && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-6 -z-10 rounded-full transition-opacity duration-(--duration-fast) group-active:opacity-0 group-data-shaking:opacity-0"
+          className="pointer-events-none absolute -inset-3 -z-10 rounded-full transition-opacity duration-(--duration-fast) group-active:opacity-0 group-data-shaking:opacity-0"
         >
-          {/* 24px wider than the circle all round. Solid ink stays hidden behind the circle (75%); from just inside
+          {/* 12px wider than the circle all round. Solid ink stays hidden behind the circle (75%); from just inside
               its rim the ink fades out to nothing at the halo's edge: a glow around the circle, no edge. */}
           <span className="block size-full rounded-full bg-[radial-gradient(closest-side,rgb(16_19_24)_75%,rgb(16_19_24/0)_100%)] opacity-0 motion-safe:animate-breathe" />
         </span>
