@@ -1,6 +1,6 @@
 import { ethClient } from "../eth";
 import { eurPriceNow, type Price } from "../prices";
-import { isTimeout, isWellKnownToken, RECENT, summarize, takeRecent, worthShowing } from "./rules";
+import { isTimeout, isWellKnownToken, once, RECENT, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate } from "./types";
 
 // Each transfer list is read this deep: an address that gets a lot of spam needs the room to
@@ -35,7 +35,7 @@ export async function lookupEthAddress(address: string): Promise<AddressActivity
       transfers({ toAddress: address }),
       pendingFrom(address),
     ]);
-    const nativePrice = eurPriceNow("ethereum");
+    const nativePrice = once(() => eurPriceNow("ethereum"));
     const mined = await takeRecent(
       mergeTransfers(outgoing, incoming, address),
       async (tx) =>
@@ -143,10 +143,10 @@ export function seenSince(lists: Transfer[][]): number | null {
 
 async function isWorthShowing(
   { amount, token }: Mined,
-  nativePrice: Promise<Price>,
+  nativePrice: () => Promise<Price>,
 ): Promise<boolean> {
   if (!amount) return false;
-  const price = token ? await eurPriceNow({ platform: "ethereum", address: token }) : await nativePrice;
+  const price = token ? await eurPriceNow({ platform: "ethereum", address: token }) : await nativePrice();
   return worthShowing(amount.amount, price, token === null || isWellKnownToken("eth", token));
 }
 

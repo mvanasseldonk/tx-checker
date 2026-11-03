@@ -90,6 +90,16 @@ export async function takeRecent<T, R>(
   return picked.slice(0, want);
 }
 
+/**
+ * Runs `load` the first time it is asked for, and hands every later caller the same answer. For a
+ * price that only some transactions need: an address that is watched is looked up again every few
+ * seconds, and must not ask the price service for what it does not use.
+ */
+export function once<T>(load: () => Promise<T>): () => Promise<T> {
+  let answer: Promise<T> | undefined;
+  return () => (answer ??= load());
+}
+
 /** A lookup that ran into the provider's time limit: the address has too much going on. */
 export function isTimeout(error: unknown): boolean {
   return error instanceof Error && error.name === "TimeoutError";

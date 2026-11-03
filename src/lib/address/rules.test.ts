@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isBusy, isTimeout, isWellKnownToken, summarize, takeRecent, worthShowing } from "./rules";
+import { isBusy, isTimeout, isWellKnownToken, once, summarize, takeRecent, worthShowing } from "./rules";
 import type { Candidate } from "./types";
 
 const NOW = 1_800_000_000;
@@ -151,5 +151,22 @@ describe("isTimeout", () => {
     expect(isTimeout(viemLike)).toBe(true);
     expect(isTimeout(new Error("HTTP 500"))).toBe(false);
     expect(isTimeout("TimeoutError")).toBe(false);
+  });
+});
+
+describe("once", () => {
+  it("does not run before it is asked for", () => {
+    const load = vi.fn(async () => 1);
+    once(load);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("runs once and gives every caller the same answer", async () => {
+    const load = vi.fn(async () => ({}));
+    const get = once(load);
+    const [a, b] = await Promise.all([get(), get()]);
+    expect(a).toBe(b);
+    expect(await get()).toBe(a);
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });
