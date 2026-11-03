@@ -241,7 +241,7 @@ function Value({
 
 function mainSize(text: string, isAddress: boolean): string {
   if (isAddress) return "font-mono text-xl";
-  if (text.length > 16) return "display text-[length:calc(18px*var(--display-scale))]";
-  if (text.length > 11) return "display text-[length:calc(22px*var(--display-scale))]";
-  return "display text-[length:calc(28px*var(--display-scale))]";
+  if (text.length > 16) return "display text-[18px]";
+  if (text.length > 11) return "display text-[22px]";
+  return "display text-[28px]";
 }

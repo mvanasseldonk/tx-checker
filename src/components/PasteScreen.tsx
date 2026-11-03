@@ -126,7 +126,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
           }`}
         >
           <ClipboardIcon size={32} strokeWidth={1.6} />
-          <span className="display text-[length:calc(26px*var(--display-scale))]">Paste</span>
+          <span className="display text-[26px]">Paste</span>
         </button>
       </CircleTransition>
       <div className="flex flex-col items-center gap-1">
