@@ -223,7 +223,7 @@ function Value({
   return (
     <>
       <span
-        className={`max-w-full font-semibold tracking-[-0.02em] break-words ${mainSize(main, isAddress)} ${
+        className={`max-w-full line-clamp-3 leading-tight [overflow-wrap:anywhere] ${mainSize(main, isAddress)} ${
           notSent ? "line-through decoration-white/60 decoration-2" : ""
         }`}
       >
@@ -231,7 +231,7 @@ function Value({
       </span>
       {sub && (
         // The circle sets --sub: grey on the ring, soft white on the disc.
-        <span className="text-[15px] text-(--sub) motion-safe:transition-colors motion-safe:duration-[600ms] motion-safe:delay-500">
+        <span className="line-clamp-2 max-w-full text-[15px] text-(--sub) [overflow-wrap:anywhere] motion-safe:transition-colors motion-safe:duration-[600ms] motion-safe:delay-500">
           {sub}
         </span>
       )}
@@ -241,7 +241,7 @@ function Value({
 
 function mainSize(text: string, isAddress: boolean): string {
   if (isAddress) return "font-mono text-xl";
-  if (text.length > 16) return "text-lg";
-  if (text.length > 11) return "text-[22px]";
-  return "text-[28px]";
+  if (text.length > 16) return "display text-[length:calc(18px*var(--display-scale))]";
+  if (text.length > 11) return "display text-[length:calc(22px*var(--display-scale))]";
+  return "display text-[length:calc(28px*var(--display-scale))]";
 }

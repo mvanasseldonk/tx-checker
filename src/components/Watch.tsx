@@ -114,7 +114,7 @@ export const STRUGGLING = "Can't reach the network · still trying";
 export function StoppedLine() {
   const watch = useWatch();
   return (
-    <button type="button" onClick={watch?.restart} className="py-1 underline decoration-hint underline-offset-4">
+    <button type="button" onClick={watch?.restart} className="inline-flex min-h-11 items-center underline decoration-hint underline-offset-4">
       Stopped watching · tap to check again
     </button>
   );

@@ -1,16 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { FontSwitch, PICK_FONT } from "@/components/FontSwitch";
+import { FONT_VARIABLES } from "./fonts";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// The typeface switch is for trying pairings on a preview. Production has the default only.
+const showFontSwitch = process.env.VERCEL_ENV !== "production";
 
 export const metadata: Metadata = {
   title: "TxChecker",
@@ -23,11 +17,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-dvh font-sans">{children}</body>
+    // The script puts the chosen pairing on <html> before the first paint.
+    <html lang="en" className={`${FONT_VARIABLES} h-full antialiased`} suppressHydrationWarning>
+      {showFontSwitch && (
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: PICK_FONT }} />
+        </head>
+      )}
+      <body className="min-h-dvh font-sans">
+        {children}
+        {showFontSwitch && <FontSwitch />}
+      </body>
     </html>
   );
 }
