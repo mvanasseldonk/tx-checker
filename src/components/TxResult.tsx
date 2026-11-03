@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Direction } from "@/lib/address/types";
 import { shortId, type Chain } from "@/lib/detect";
 import { formatAmount, formatEur, formatWait, shortAddress } from "@/lib/format";
 import type { TxStatus, TxValue } from "@/lib/status";
@@ -47,36 +48,66 @@ function placeInLine(blocksAway: number): string {
   return `In ~${blocksAway} blocks · ~${blocksAway * MINUTES_PER_BLOCK} min`;
 }
 
-/** One status circle, one status word and at most one line. */
-export function TxResult({ chain, id, status }: { chain: Chain; id: string; status: TxStatus }) {
+/**
+ * One status circle, one status word and at most one line. Found through an address, it also
+ * says whether the transaction was `direction` and has `below` it a way to pick another one;
+ * `waiting` is then what a pending transaction says when it has no cause to show.
+ */
+export function TxResult({
+  chain,
+  id,
+  status,
+  direction,
+  waiting = "Waiting to be included",
+  below,
+}: {
+  chain: Chain;
+  id: string;
+  status: TxStatus;
+  direction?: Direction;
+  waiting?: string;
+  below?: React.ReactNode;
+}) {
+  const label = direction && <DirectionLabel direction={direction} />;
   if (status.kind === "replaced") {
     return (
       <Frame chain={chain} pasteAgain>
+        {label}
         <Replaced chain={chain} by={status.by} />
+        {below}
       </Frame>
     );
   }
   if (status.kind === "notFound") {
     return (
       <Frame chain={chain} pasteAgain>
+        {label}
         <StillLooking refreshSeconds={BLOCK_SECONDS[chain]} {...NOT_FOUND[chain]} />
+        {below}
       </Frame>
     );
   }
   return (
     <Frame chain={chain} pasteAgain>
+      {label}
       <Following
         kind={status.kind}
         seconds={BLOCK_SECONDS[chain]}
         {...LOOK[status.kind]}
         progress={progressOf(status)}
-        {...verdictOf(status)}
+        {...verdictOf(status, waiting)}
       >
         <Value chain={chain} value={status.value} notSent={status.kind === "failed"} />
       </Following>
       <DetailsSheet chain={chain} id={id} details={status.details} notSent={status.kind === "failed"} />
+      {below}
     </Frame>
   );
+}
+
+/** Found through an address, a transaction is not necessarily the user's own: say which way it went. */
+function DirectionLabel({ direction }: { direction: Direction }) {
+  return <p className="-mb-2 text-[15px] font-medium text-muted">{direction === "sent" ? "Sent" : "Received"}</p>;
 }
 
 type Found = Exclude<TxStatus, { kind: "notFound" | "replaced" }>;
@@ -127,7 +158,7 @@ function progressOf(status: Found): number {
 }
 
 /** The status word and the one line under it. */
-function verdictOf(status: Found): { word: string; wordClass: string; line: React.ReactNode } {
+function verdictOf(status: Found, waiting: string): { word: string; wordClass: string; line: React.ReactNode } {
   switch (status.kind) {
     case "final":
       return {
@@ -152,7 +183,7 @@ function verdictOf(status: Found): { word: string; wordClass: string; line: Reac
           ? PENDING_CAUSE[status.cause]
           : status.blocksAway
             ? placeInLine(status.blocksAway)
-            : "Waiting to be included",
+            : waiting,
       };
     case "failed":
       return {

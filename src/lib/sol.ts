@@ -10,7 +10,7 @@ import {
   type TxValue,
 } from "./status";
 
-const LAMPORTS_PER_SOL = 1e9;
+export const LAMPORTS_PER_SOL = 1e9;
 // Mainnet finalizes within about a second of confirming, so not-yet-final is short-lived.
 const PROGRESS = { processed: 0.33, confirmed: 0.66 };
 const TIMEOUT_MS = 2500;
@@ -21,7 +21,7 @@ const TIP_LAMPORTS = 1_000_000;
 const SYSTEM = "11111111111111111111111111111111";
 const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const TOKEN_2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
-const WRAPPED_SOL = "So11111111111111111111111111111111111111112";
+export const WRAPPED_SOL = "So11111111111111111111111111111111111111112";
 
 // Programs that only prepare or decorate a transaction, never what it is about.
 const HELPERS = new Set([
@@ -107,7 +107,7 @@ function rpcUrl(): string {
     : "https://api.mainnet-beta.solana.com";
 }
 
-async function rpc<T>(method: string, params: unknown, retry = true): Promise<T> {
+export async function rpc<T>(method: string, params: unknown, retry = true): Promise<T> {
   const response = await fetch(rpcUrl(), {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -295,7 +295,7 @@ function info(ix: Instruction): Record<string, unknown> {
 }
 
 /** A token's symbol: a well-known one, or its metadata on Helius. */
-async function tokenSymbol(mint: string): Promise<string> {
+export async function tokenSymbol(mint: string): Promise<string> {
   const known = TOKENS[mint];
   if (known) return known;
   if (!process.env.HELIUS_API_KEY) return shortAddress(mint);

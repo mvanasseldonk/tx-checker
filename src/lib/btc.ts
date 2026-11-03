@@ -24,20 +24,20 @@ type BtcTransaction = {
 export type ProjectedBlock = { feeRange: number[] };
 
 // A 404 (unknown transaction) is null; any other failure throws, so it is never taken for "not found".
-async function get(path: string, retry = true): Promise<Response | null> {
-  const response = await fetch(`${API}${path}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+async function get(path: string, timeout = TIMEOUT_MS, retry = true): Promise<Response | null> {
+  const response = await fetch(`${API}${path}`, { signal: AbortSignal.timeout(timeout) });
   // Rate limits and node hiccups pass quickly; one failed refresh shouldn't end the countdown.
   if ((response.status === 429 || response.status >= 500) && retry) {
     await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
-    return get(path, false);
+    return get(path, timeout, false);
   }
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`mempool.space ${path} returned ${response.status}`);
   return response;
 }
 
-async function getJson<T>(path: string): Promise<T | null> {
-  return (await get(path))?.json() ?? null;
+export async function getJson<T>(path: string, timeout?: number): Promise<T | null> {
+  return (await get(path, timeout))?.json() ?? null;
 }
 
 /** Looks up a Bitcoin mainnet transaction and what to tell the user about it. */

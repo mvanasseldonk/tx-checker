@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { detectTransaction } from "@/lib/detect";
+import { detectPaste } from "@/lib/detect";
 import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
 
-const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction";
+const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction or address";
 
 type Mode = "paste" | "type";
 
@@ -16,12 +16,12 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
   const [value, setValue] = useState("");
 
   function check(text: string) {
-    const detection = detectTransaction(text);
-    if (!detection.ok) {
+    const pasted = detectPaste(text);
+    if (!pasted.ok) {
       setInvalid(true);
       return;
     }
-    router.push(`/tx/${detection.id}`);
+    router.push(`/${pasted.kind === "tx" ? "tx" : "address"}/${pasted.id}`);
   }
 
   async function pasteFromClipboard() {
@@ -69,10 +69,10 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
           >
             <input
               type="text"
-              aria-label="Transaction hash or explorer link"
+              aria-label="Transaction hash, address or explorer link"
               aria-invalid={invalid}
               aria-describedby={invalid ? "invalid" : undefined}
-              placeholder="0x… or signature"
+              placeholder="Hash, signature, txid or address"
               autoFocus
               autoCapitalize="off"
               autoCorrect="off"
@@ -91,7 +91,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
                 setValue(pasted);
                 check(pasted);
               }}
-              className="h-12 min-w-0 flex-1 bg-transparent font-mono text-[15px] text-ink outline-none placeholder:text-hint"
+              className="h-12 min-w-0 flex-1 bg-transparent font-mono text-[15px] text-ink outline-none placeholder:font-sans placeholder:text-sm placeholder:text-hint"
             />
             <button
               type="submit"
@@ -102,7 +102,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
             </button>
           </div>
           {invalid && (
-            <p id="invalid" role="alert" className="text-center text-base font-medium text-danger">
+            <p id="invalid" role="alert" className="text-center text-base font-medium text-balance text-danger">
               {INVALID_MESSAGE}
             </p>
           )}
@@ -128,7 +128,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
       </button>
       <div className="flex flex-col items-center gap-1">
         {invalid && (
-          <p id="invalid" role="alert" className="text-base font-medium text-danger">
+          <p id="invalid" role="alert" className="text-center text-base font-medium text-balance text-danger">
             {INVALID_MESSAGE}
           </p>
         )}
@@ -140,7 +140,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
           }}
           className="flex h-11 items-center px-3 text-[15px] text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-ink"
         >
-          or type a hash
+          or type a hash or address
         </button>
       </div>
     </main>
