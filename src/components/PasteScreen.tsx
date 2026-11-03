@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { detectPaste } from "@/lib/detect";
+import { HomeWordmark } from "./brand/Brand";
 import { CircleTransition } from "./CircleTransition";
 import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
 
@@ -113,7 +114,10 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-9 px-8 pb-20">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-9 px-8 pb-20">
+      <header className="absolute inset-x-0 top-5 mx-auto flex h-11 w-full max-w-md items-center px-6">
+        <HomeWordmark />
+      </header>
       <CircleTransition>
         <button
           type="button"

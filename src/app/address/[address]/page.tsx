@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -16,6 +17,9 @@ import { detectAddress, type Chain } from "@/lib/detect";
 import { LOOKUP } from "@/lib/lookup";
 import type { TxStatus } from "@/lib/status";
 import { parseSeen, shownCandidate, WATCH_SECONDS } from "@/lib/watch";
+
+// The name comes from the layout: "Address · Ancoro".
+export const metadata: Metadata = { title: "Address" };
 
 export default function AddressPage({ params, searchParams }: PageProps<"/address/[address]">) {
   return (
