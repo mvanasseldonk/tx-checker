@@ -2,11 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { cancelClipboardRetry, type PasteState } from "@/lib/paste";
+import type { PasteState } from "@/lib/paste";
 import { HomeWordmark } from "./brand/Brand";
 import { CircleTransition } from "./CircleTransition";
 import { ArrowRightIcon, ClipboardIcon, CloseIcon } from "./icons";
-import { PasteDebug } from "./PasteDebug";
 import { usePaste } from "./usePaste";
 
 const INVALID_MESSAGE = "Not an ETH, SOL or BTC transaction or address";
@@ -43,27 +42,19 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
   const [unreadable, setUnreadable] = useState(false);
   const [value, setValue] = useState("");
 
-  const { check, pasteFromClipboard, resumeRetry } = usePaste({
+  const askFor = useCallback((state: PasteState) => {
+    setInvalid(state === "invalid");
+    setUnreadable(state === "unreadable");
+    setMode(state === "type" ? "type" : "paste");
+  }, []);
+  const { check, pasteFromClipboard } = usePaste({
     onEmpty: () => {
       setInvalid(false);
-      setUnreadable(false);
       setMode("type");
     },
-    onInvalid: () => {
-      setUnreadable(false);
-      setInvalid(true);
-    },
+    onInvalid: () => setInvalid(true),
     onUnreadable: () => setUnreadable(true),
   });
-  const askFor = useCallback(
-    (state: PasteState) => {
-      setInvalid(state === "invalid");
-      setUnreadable(state === "unreadable");
-      setMode(state === "type" ? "type" : "paste");
-      if (state === "unreadable") resumeRetry(); // EXPERIMENT #33: the retry of a failed top-right Paste
-    },
-    [resumeRetry],
-  );
 
   /** Clears the line first, so that it is announced again when the next read fails too. */
   function paste() {
@@ -143,9 +134,6 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
             </p>
           )}
         </form>
-        <div className="mt-auto">
-          <PasteDebug />
-        </div>
       </main>
     );
   }
@@ -187,7 +175,6 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
         <button
           type="button"
           onClick={() => {
-            cancelClipboardRetry(); // typing instead: a late retry must not take the screen away
             setInvalid(false);
             setUnreadable(false);
             setMode("type");
@@ -196,9 +183,6 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
         >
           or type a hash or address
         </button>
-      </div>
-      <div className="absolute inset-x-0 bottom-2">
-        <PasteDebug />
       </div>
     </main>
   );
