@@ -2,6 +2,7 @@ import type { Chain } from "@/lib/detect";
 import { HomeMark } from "./brand/Brand";
 import { ChainLogo } from "./ChainLogo";
 import { PasteAgainButton } from "./PasteAgainButton";
+import { PasteDebug } from "./PasteDebug";
 
 /** The page around the status circle: chain logo top left, the small mark (home) in the middle, a button that pastes the next one top right. */
 export function Frame({
@@ -23,6 +24,7 @@ export function Frame({
         </div>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-7 pb-10">{children}</div>
+      <PasteDebug />
     </main>
   );
 }
