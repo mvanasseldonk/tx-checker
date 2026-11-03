@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { unstable_rethrow } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -7,6 +8,9 @@ import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
 import { detectTransaction, type Chain } from "@/lib/detect";
 import { LOOKUP } from "@/lib/lookup";
+
+// The name comes from the layout: "Transaction · Ancoro".
+export const metadata: Metadata = { title: "Transaction" };
 
 export default function TxPage({ params }: PageProps<"/tx/[id]">) {
   return (

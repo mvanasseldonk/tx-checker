@@ -1,10 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { NAME, TAGLINE } from "@/components/brand/config";
 import { FONT_VARIABLES } from "./fonts";
 import "./globals.css";
 
+const DESCRIPTION = `${NAME} tells you if your transaction went through. Paste an ETH, SOL or BTC transaction or address and follow it until it is final.`;
+
 export const metadata: Metadata = {
-  title: "TxChecker",
-  description: "Did my transaction go through? Paste an ETH, SOL or BTC transaction or address.",
+  title: { default: `${NAME} · ${TAGLINE}`, template: `%s · ${NAME}` },
+  description: DESCRIPTION,
+  applicationName: NAME,
+  openGraph: { siteName: NAME, title: `${NAME} · ${TAGLINE}`, description: DESCRIPTION, type: "website" },
+  twitter: { card: "summary_large_image", title: `${NAME} · ${TAGLINE}`, description: DESCRIPTION },
 };
 
 export const viewport: Viewport = {
