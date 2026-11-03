@@ -6,8 +6,8 @@ import { DetailsSheet } from "./DetailsSheet";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
 import { ArrowRightIcon, LockIcon } from "./icons";
-import { KeepChecking } from "./KeepChecking";
-import { Disc, Ring } from "./StatusCircle";
+import { Following } from "./Following";
+import { Disc } from "./StatusCircle";
 import { StillLooking } from "./StillLooking";
 
 const GREEN = "#0B6B45";
@@ -65,12 +65,16 @@ export function TxResult({ chain, id, status }: { chain: Chain; id: string; stat
   }
   return (
     <Frame chain={chain} pasteAgain>
-      <Circle chain={chain} status={status} />
-      <Verdict status={status} />
+      <Following
+        kind={status.kind}
+        seconds={BLOCK_SECONDS[chain]}
+        {...LOOK[status.kind]}
+        progress={progressOf(status)}
+        {...verdictOf(status)}
+      >
+        <Value chain={chain} value={status.value} notSent={status.kind === "failed"} />
+      </Following>
       <DetailsSheet chain={chain} id={id} details={status.details} notSent={status.kind === "failed"} />
-      {(status.kind === "included" || status.kind === "pending") && (
-        <KeepChecking seconds={BLOCK_SECONDS[chain]} />
-      )}
     </Frame>
   );
 }
@@ -101,69 +105,61 @@ function Replaced({ chain, by }: { chain: Chain; by: string }) {
   );
 }
 
-function Circle({ chain, status }: { chain: Chain; status: Found }) {
+/** Colors of each status: the ring, its track and the shadow of the disc it settles into. */
+const LOOK = {
+  final: { color: GREEN, track: "rgba(11,107,69,0.15)", shadow: "rgba(11,107,69,0.5)" },
+  included: { color: GREEN, track: "rgba(11,107,69,0.15)", shadow: "rgba(11,107,69,0.5)" },
+  pending: { color: AMBER, track: "rgba(184,106,0,0.15)", shadow: "rgba(184,106,0,0.5)" },
+  failed: { color: RED, track: "rgba(163,35,27,0.15)", shadow: "rgba(163,35,27,0.5)" },
+};
+
+/** How far round the ring goes: a Final or Failed one is complete, as the disc it turns into. */
+function progressOf(status: Found): number {
   switch (status.kind) {
     case "final":
-      return (
-        <Disc color={GREEN} shadow="rgba(11,107,69,0.5)">
-          <Value chain={chain} value={status.value} onDisc />
-        </Disc>
-      );
-    case "included":
-      return (
-        <Ring color={GREEN} track="rgba(11,107,69,0.15)" progress={Math.max(0.04, status.progress)}>
-          <Value chain={chain} value={status.value} />
-        </Ring>
-      );
-    case "pending":
-      return (
-        <Ring color={AMBER} track="rgba(184,106,0,0.15)" progress={0.11}>
-          <Value chain={chain} value={status.value} />
-        </Ring>
-      );
     case "failed":
-      return (
-        <Disc color={RED} shadow="rgba(163,35,27,0.5)">
-          <Value chain={chain} value={status.value} onDisc notSent />
-        </Disc>
-      );
+      return 1;
+    case "included":
+      return Math.max(0.04, status.progress);
+    case "pending":
+      return 0.11;
   }
 }
 
-function Verdict({ status }: { status: Found }) {
+/** The status word and the one line under it. */
+function verdictOf(status: Found): { word: string; wordClass: string; line: React.ReactNode } {
   switch (status.kind) {
     case "final":
-      return (
-        <Heading word="Success" color="text-success">
-          <span className="mr-1.5 inline-block align-[-1px]">
-            <LockIcon size={14} />
-          </span>
-          Final
-        </Heading>
-      );
+      return {
+        word: "Success",
+        wordClass: "text-success",
+        line: (
+          <>
+            <span className="mr-1.5 inline-block align-[-1px]">
+              <LockIcon size={14} />
+            </span>
+            Final
+          </>
+        ),
+      };
     case "included":
-      return (
-        <Heading word="Success" color="text-success">
-          Final in {formatWait(status.secondsToFinal)}
-        </Heading>
-      );
+      return { word: "Success", wordClass: "text-success", line: `Final in ${formatWait(status.secondsToFinal)}` };
     case "pending":
-      return (
-        <Heading word="Pending" color="text-pending">
-          {status.cause
-            ? PENDING_CAUSE[status.cause]
-            : status.blocksAway
-              ? placeInLine(status.blocksAway)
-              : "Waiting to be included"}
-        </Heading>
-      );
+      return {
+        word: "Pending",
+        wordClass: "text-pending",
+        line: status.cause
+          ? PENDING_CAUSE[status.cause]
+          : status.blocksAway
+            ? placeInLine(status.blocksAway)
+            : "Waiting to be included",
+      };
     case "failed":
-      return (
-        <Heading word="Failed" color="text-danger">
-          {status.reason ?? "No reason given"}
-          {status.feeEur !== null && ` · ${formatEur(status.feeEur)} fee paid`}
-        </Heading>
-      );
+      return {
+        word: "Failed",
+        wordClass: "text-danger",
+        line: `${status.reason ?? "No reason given"}${status.feeEur !== null ? ` · ${formatEur(status.feeEur)} fee paid` : ""}`,
+      };
   }
 }
 
@@ -171,12 +167,10 @@ function Verdict({ status }: { status: Found }) {
 function Value({
   chain,
   value,
-  onDisc = false,
   notSent = false,
 }: {
   chain: Chain;
   value: TxValue;
-  onDisc?: boolean;
   notSent?: boolean;
 }) {
   const main =
@@ -200,7 +194,12 @@ function Value({
       >
         {main}
       </span>
-      {sub && <span className={`text-[15px] ${onDisc ? "text-white/85" : "text-muted"}`}>{sub}</span>}
+      {sub && (
+        // The circle sets --sub: grey on the ring, soft white on the disc.
+        <span className="text-[15px] text-(--sub) motion-safe:transition-colors motion-safe:duration-[600ms] motion-safe:delay-500">
+          {sub}
+        </span>
+      )}
     </>
   );
 }
