@@ -95,3 +95,21 @@ export function CheckIcon(props: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * An icon that turns into a check with a small pop once it is `done`. `stamp` counts the times it was done,
+ * so that a second copy pops again; `strokeWidth` and `size` are the icon's own.
+ */
+export function DoneIcon({
+  done,
+  stamp = 0,
+  icon,
+  ...props
+}: IconProps & { done: boolean; stamp?: number; icon: React.ReactNode }) {
+  if (!done) return icon;
+  return (
+    <span key={stamp} className="inline-flex motion-safe:animate-pop">
+      <CheckIcon {...props} />
+    </span>
+  );
+}
