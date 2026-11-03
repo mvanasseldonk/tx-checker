@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { DEFAULT_MARK, GROUND, INK, NAME, TAGLINE } from "@/components/brand/config";
+import { GROUND, INK, NAME, TAGLINE } from "@/components/brand/config";
 import { LOCKUP_HEIGHT, LOCKUP_TOP, LockupArt } from "@/components/brand/Lockup";
 import { WORD_UNITS_PER_EM } from "@/components/brand/glyphs";
 
@@ -16,9 +16,9 @@ const LOCKUP_SIZE = 150; // the type size the wordmark has, in px
 // Read once, at module level, which keeps this image prerendered at build time instead of drawn per request.
 const fraunces = await readFile(join(process.cwd(), "src/components/brand/fraunces-medium-latin.ttf"));
 
-/** The share image: the lockup of the default mark, the line, and a settled status circle. */
+/** The share image: the lockup, the line, and a settled status circle. */
 export default function OpenGraphImage() {
-  const { width, art } = LockupArt(DEFAULT_MARK, INK);
+  const { width, art } = LockupArt(INK);
   const scale = LOCKUP_SIZE / WORD_UNITS_PER_EM;
 
   return new ImageResponse(
