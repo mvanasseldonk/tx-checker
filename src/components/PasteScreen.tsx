@@ -44,6 +44,8 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
   // Counts the times something was not recognised, so that it shakes "no" each time, also when the message stays.
   const [rejections, setRejections] = useState(initialInvalid ? 1 : 0);
   const [unreadable, setUnreadable] = useState(false);
+  // A paste is being read: the circle holds still (and stops inviting) until it is answered.
+  const [reading, setReading] = useState(false);
   const [value, setValue] = useState("");
   // What shakes: the Paste circle, or the field of the type mode.
   const circle = useRef<HTMLButtonElement>(null);
@@ -76,9 +78,14 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
   });
 
   /** Clears the line first, so that it is announced again when the next read fails too. */
-  function paste() {
+  async function paste() {
     setUnreadable(false);
-    return pasteFromClipboard();
+    setReading(true);
+    try {
+      await pasteFromClipboard();
+    } finally {
+      setReading(false);
+    }
   }
 
   if (mode === "type") {
@@ -142,6 +149,7 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
       <PasteCircle
         onClick={paste}
         invalid={invalid}
+        pulse={!reading}
         describedBy={invalid ? "invalid" : unreadable ? "unreadable" : undefined}
         buttonRef={circle}
       />

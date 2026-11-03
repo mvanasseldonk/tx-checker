@@ -43,8 +43,13 @@ export function reducedMotion(): boolean {
   );
 }
 
-/** Shakes an element "no", once, unless motion is reduced. Only transform moves. */
+/**
+ * Shakes an element "no", once, unless motion is reduced. Only transform moves. The element carries
+ * `data-shaking` meanwhile, so that other motion on it (the Paste circle's pulse) can give way.
+ */
 export function shake(element: HTMLElement | null) {
   if (!element || reducedMotion()) return;
-  element.animate(SHAKE_KEYFRAMES, { duration: SHAKE_MS, easing: "ease-in-out" });
+  element.dataset.shaking = "";
+  const done = () => delete element.dataset.shaking;
+  element.animate(SHAKE_KEYFRAMES, { duration: SHAKE_MS, easing: "ease-in-out" }).finished.then(done, done);
 }

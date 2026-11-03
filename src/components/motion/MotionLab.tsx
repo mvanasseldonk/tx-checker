@@ -85,6 +85,7 @@ export function MotionLab() {
       <Sheet />
       <EarlierList />
       <ArrowButton />
+      <InvitingPaste />
     </main>
   );
 }
@@ -353,6 +354,19 @@ function ArrowButton() {
           <TypeField value={value} invalid={false} onChange={setValue} onPasteText={setValue} />
         </form>
       )}
+    </Demo>
+  );
+}
+
+function InvitingPaste() {
+  return (
+    <Demo
+      number={9}
+      title="Inviting Paste"
+      timing="A soft halo breathes out from behind the circle: 3.6 s a cycle, ease-in-out, 13% ink at most. It is gone while pressed or shaking, never runs in type mode or during the morph, and not at all with reduced motion."
+      onReplay={nothing}
+    >
+      {(run) => <PasteCircle key={run} onClick={nothing} invalid={false} morph={false} pulse />}
     </Demo>
   );
 }
