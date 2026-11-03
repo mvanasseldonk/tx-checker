@@ -4,7 +4,8 @@ import { detectPaste } from "./detect";
 export type PasteOutcome =
   | { kind: "open"; href: string }
   | { kind: "empty" }
-  | { kind: "invalid" };
+  | { kind: "invalid" }
+  | { kind: "unreadable" };
 
 /** A transaction or address opens its page, nothing at all means typing, anything else is not recognised. */
 export function decidePaste(text: string | null | undefined): PasteOutcome {
@@ -14,15 +15,30 @@ export function decidePaste(text: string | null | undefined): PasteOutcome {
   return { kind: "open", href: `/${pasted.kind === "tx" ? "tx" : "address"}/${pasted.id}` };
 }
 
-/** The paste screen's states that another screen can ask for with `/?type` or `/?invalid`. */
-export const PASTE_STATES = ["type", "invalid"] as const;
+/** What reading the clipboard gave: its text (possibly ""), or that the browser refused or failed to read it. */
+export type ClipboardRead = { ok: true; text: string } | { ok: false };
+
+/** A failed read keeps the paste screen (try again), anything else is decided by its text. */
+export function decideClipboard(read: ClipboardRead): PasteOutcome {
+  return read.ok ? decidePaste(read.text) : { kind: "unreadable" };
+}
+
+/** The paste screen's states that another screen can ask for with `/?type`, `/?invalid` or `/?unreadable`. */
+export const PASTE_STATES = ["type", "invalid", "unreadable"] as const;
 export type PasteState = (typeof PASTE_STATES)[number];
 
-/** The clipboard's text, or "" when it is empty, denied or unsupported. Call it straight from a click (iOS needs the gesture). */
-export async function readClipboard(): Promise<string> {
+/**
+ * The clipboard's text, `{ ok: false }` when the read fails (denied, dismissed, or interrupted by iOS's own
+ * "paste from" question), and an empty text when the clipboard is empty or the API is missing altogether: typing
+ * is then the only way, so the caller goes straight to the type field. Call it straight from a click (iOS needs
+ * the gesture).
+ */
+export async function readClipboard(): Promise<ClipboardRead> {
+  const clipboard = typeof navigator === "undefined" ? undefined : navigator.clipboard;
+  if (typeof clipboard?.readText !== "function") return { ok: true, text: "" };
   try {
-    return (await navigator.clipboard?.readText()) ?? "";
+    return { ok: true, text: (await clipboard.readText()) ?? "" };
   } catch {
-    return "";
+    return { ok: false };
   }
 }
