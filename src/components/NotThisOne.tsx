@@ -4,13 +4,23 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Candidate } from "@/lib/address/types";
 import { formatAmount, formatTime } from "@/lib/format";
+import { staggerDelay } from "@/lib/motion";
 
 /**
  * A quiet "Not this one?" that opens the last few transactions of the address, each a link to follow it.
- * When none is shown (`currentId` is absent), it reads "Earlier transactions".
+ * When none is shown (`currentId` is absent), it reads "Earlier transactions". The list builds up one row after
+ * another, each time it opens.
  */
-export function NotThisOne({ candidates, currentId }: { candidates: Candidate[]; currentId?: string }) {
-  const [open, setOpen] = useState(false);
+export function NotThisOne({
+  candidates,
+  currentId,
+  initialOpen = false,
+}: {
+  candidates: Candidate[];
+  currentId?: string;
+  initialOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(initialOpen);
   // Only the transaction that is shown: there is no other one to pick.
   if (candidates.every((candidate) => candidate.id === currentId)) return null;
   return (
@@ -26,8 +36,12 @@ export function NotThisOne({ candidates, currentId }: { candidates: Candidate[];
       {/* The list only exists while open, so times render in the viewer's time zone, never the server's. */}
       {open && (
         <ul className="mt-2 w-full divide-y divide-ink/10 overflow-hidden rounded-2xl bg-white">
-          {candidates.map((candidate) => (
-            <li key={candidate.id}>
+          {candidates.map((candidate, index) => (
+            <li
+              key={candidate.id}
+              className="motion-safe:animate-rise-fast"
+              style={{ "--delay": `${staggerDelay(index, { step: 30, cap: 7 })}ms` } as React.CSSProperties}
+            >
               <Row candidate={candidate} current={candidate.id === currentId} />
             </li>
           ))}

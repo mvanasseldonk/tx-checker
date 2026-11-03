@@ -5,10 +5,14 @@ import type { Chain } from "@/lib/detect";
 import { explorerFor } from "@/lib/explorer";
 import { formatAmount, formatEur, formatTime, shortAddress } from "@/lib/format";
 import type { TxAmount, TxDetails } from "@/lib/status";
+import { staggerDelay } from "@/lib/motion";
 import { shareLink, txLink, type ShareOutcome } from "@/lib/share";
-import { CheckIcon, CloseIcon, CopyIcon, ShareIcon } from "./icons";
+import { CloseIcon, CopyIcon, DoneIcon, ShareIcon } from "./icons";
 
 const CLOSE_MS = 250;
+// The rows come in one after another, starting while the sheet is still on its way up.
+const ROW_LEAD_MS = 90;
+const ROW_STEP_MS = 25;
 // Dragged this far down, or flicked this fast, the sheet closes.
 const CLOSE_DISTANCE = 100;
 const CLOSE_VELOCITY = 0.6;
@@ -112,12 +116,13 @@ export function DetailsSheet({
           drag.current = null;
           release(event.currentTarget);
         }}
-        className={`fixed inset-x-0 top-auto bottom-0 m-0 mx-auto w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-0 text-ink backdrop:bg-ink/40 transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
-          shown ? "translate-y-0" : "translate-y-full"
+        className={`fixed inset-x-0 top-auto -bottom-4 m-0 mx-auto w-full max-w-md overflow-hidden rounded-t-3xl bg-white p-0 text-ink backdrop:bg-ink/40 transition-transform motion-reduce:transition-none ${
+          // Opening settles with a light overshoot (the extra 1rem below the screen is what shows then); closing is quick.
+          shown ? "translate-y-0 duration-(--duration-base) ease-settle" : "translate-y-full duration-[250ms] ease-out"
         }`}
       >
         {open && (
-          <div className="flex max-h-[90dvh] flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="flex max-h-[90dvh] flex-col pb-[calc(max(1.5rem,env(safe-area-inset-bottom))+1rem)]">
             <div className="touch-none px-6">
               <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-hint/50" />
               <div className="flex h-14 items-center justify-between">
@@ -152,6 +157,8 @@ function Actions({ chain, id }: { chain: Chain; id: string }) {
   const [outcome, setOutcome] = useState<ShareOutcome | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [link, setLink] = useState("");
+  // Counts the copies, so that the check pops again when the link is copied a second time.
+  const [copies, setCopies] = useState(0);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -166,6 +173,7 @@ function Actions({ chain, id }: { chain: Chain; id: string }) {
     clearTimeout(timer.current);
     setLink(url);
     setOutcome(result === "shared" || result === "cancelled" ? null : result);
+    if (result === "copied") setCopies((count) => count + 1);
     // A failed copy stays on screen: the link below it is the only way left to get the link.
     if (result === "copied") timer.current = setTimeout(() => setOutcome(null), NOTICE_MS);
   }
@@ -179,7 +187,7 @@ function Actions({ chain, id }: { chain: Chain; id: string }) {
           onClick={share}
           className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-ink px-3 text-[15px] font-medium text-white transition-transform active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink motion-reduce:transition-none"
         >
-          {copied ? <CheckIcon size={18} /> : <ShareIcon size={18} />}
+          <DoneIcon done={copied} stamp={copies} size={18} icon={<ShareIcon size={18} />} />
           {copied ? "Link copied" : "Share"}
         </button>
         <ExplorerLink chain={chain} id={id} />
@@ -222,40 +230,41 @@ function ExplorerLink({ chain, id }: { chain: Chain; id: string }) {
 
 function Fields({ details, notSent }: { details: TxDetails; notSent: boolean }) {
   const { to, amount, fee, time } = details;
-  return (
-    <>
-      {to && (
-        <Field label="To">
+  const rows: { label: string; content: React.ReactNode }[] = [];
+  if (to) {
+    rows.push({
+      label: "To",
+      content: (
+        <>
           {to.name && <span className="font-medium [overflow-wrap:anywhere]">{to.name}</span>}
           <Address address={to.address} />
           {to.method && <span className="text-[15px] text-muted [overflow-wrap:anywhere]">{to.method}</span>}
+        </>
+      ),
+    });
+  }
+  if (details.from) rows.push({ label: "From", content: <Address address={details.from} /> });
+  if (amount) rows.push({ label: "Amount", content: <Money money={amount} note={notSent ? "not sent" : undefined} /> });
+  if (fee) rows.push({ label: "Fee", content: <Money money={fee} /> });
+  rows.push({ label: "Time", content: <span>{time === null ? "Not yet" : formatTime(time)}</span> });
+  return (
+    <>
+      {rows.map((row, index) => (
+        <Field key={row.label} label={row.label} index={index}>
+          {row.content}
         </Field>
-      )}
-      {details.from && (
-        <Field label="From">
-          <Address address={details.from} />
-        </Field>
-      )}
-      {amount && (
-        <Field label="Amount">
-          <Money money={amount} note={notSent ? "not sent" : undefined} />
-        </Field>
-      )}
-      {fee && (
-        <Field label="Fee">
-          <Money money={fee} />
-        </Field>
-      )}
-      <Field label="Time">
-        <span>{time === null ? "Not yet" : formatTime(time)}</span>
-      </Field>
+      ))}
     </>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** One row; the `index`-th starts a little after the one before it. */
+function Field({ label, index, children }: { label: string; index: number; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-14 items-center justify-between gap-6 border-t border-ink/10 py-2 first:border-t-0">
+    <div
+      className="flex min-h-14 items-center justify-between gap-6 border-t border-ink/10 py-2 first:border-t-0 motion-safe:animate-rise-fast"
+      style={{ "--delay": `${staggerDelay(index, { step: ROW_STEP_MS, lead: ROW_LEAD_MS })}ms` } as React.CSSProperties}
+    >
       <dt className="flex-none text-[15px] text-muted">{label}</dt>
       <dd className="flex min-w-0 flex-col items-end text-right text-[15px]">{children}</dd>
     </div>
@@ -278,6 +287,7 @@ function Money({ money, note }: { money: TxAmount; note?: string }) {
 /** A shortened address; one tap copies the full one. */
 function Address({ address }: { address: string }) {
   const [copied, setCopied] = useState(false);
+  const [copies, setCopies] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -289,6 +299,7 @@ function Address({ address }: { address: string }) {
       return;
     }
     setCopied(true);
+    setCopies((count) => count + 1);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setCopied(false), 1500);
   }
@@ -305,7 +316,7 @@ function Address({ address }: { address: string }) {
           {copied ? "Copied" : shortAddress(address)}
         </span>
         <span className="text-hint">
-          <CopyIcon size={16} />
+          <DoneIcon done={copied} stamp={copies} size={16} icon={<CopyIcon size={16} />} />
         </span>
       </button>
       <span role="status" className="sr-only">
