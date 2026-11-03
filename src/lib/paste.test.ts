@@ -58,13 +58,13 @@ describe("readClipboard", () => {
 
   it("fails when the read is rejected, whatever the error", async () => {
     stubClipboard({ readText: () => Promise.reject(new DOMException("denied", "NotAllowedError")) });
-    expect(await readClipboard()).toEqual({ ok: false, error: "NotAllowedError" });
+    expect(await readClipboard()).toEqual({ ok: false });
     stubClipboard({
       readText: () => {
         throw new Error("boom");
       },
     });
-    expect(await readClipboard()).toEqual({ ok: false, error: "Error" });
+    expect(await readClipboard()).toEqual({ ok: false });
   });
 
   it("counts a missing clipboard API as empty, because typing is the only way then", async () => {
