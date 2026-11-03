@@ -1,6 +1,6 @@
 import { eurPriceNow, type Price } from "../prices";
 import { LAMPORTS_PER_SOL, rpc, tokenSymbol, WRAPPED_SOL } from "../sol";
-import { isTimeout, isWellKnownToken, SOL_DUST, summarize, takeRecent, worthShowing } from "./rules";
+import { isTimeout, isWellKnownToken, once, SOL_DUST, summarize, takeRecent, worthShowing } from "./rules";
 import type { AddressActivity, Candidate, Direction } from "./types";
 
 // Read this many, then drop the spam: a wallet that gets a lot of dust still needs a few real ones.
@@ -53,7 +53,7 @@ export async function lookupSolAddress(address: string): Promise<AddressActivity
         maxSupportedTransactionVersion: 1,
       },
     ]);
-    const solEur = eurPriceNow("solana");
+    const solEur = once(() => eurPriceNow("solana"));
     const shown = await takeRecent(
       data.map((tx) => movementOf(tx, address)),
       (movement) => describe(movement, solEur),
@@ -95,7 +95,7 @@ export function movementOf(tx: SolTransaction, address: string): Movement {
 }
 
 /** The transaction as a candidate, or null when it is spam (received transfers only). */
-async function describe(movement: Movement, solEur: Promise<Price>): Promise<Candidate | null> {
+async function describe(movement: Movement, solEur: () => Promise<Price>): Promise<Candidate | null> {
   const { id, direction, time } = movement;
   const candidate = { id, direction, time, pending: false };
   // Same sign as the direction: what left on a send, what arrived on a receive.
@@ -115,7 +115,7 @@ async function describe(movement: Movement, solEur: Promise<Price>): Promise<Can
   if (movement.sol >= SOL_DUST) return { ...candidate, amount: { amount: movement.sol, symbol: "SOL" } };
   for (const token of tokens) {
     const wrapped = token.mint === WRAPPED_SOL;
-    const price = wrapped ? await solEur : await eurPriceNow({ platform: "solana", address: token.mint });
+    const price = wrapped ? await solEur() : await eurPriceNow({ platform: "solana", address: token.mint });
     if (worthShowing(token.amount, price, wrapped || isWellKnownToken("sol", token.mint))) {
       return { ...candidate, ...(await tokenAmount(token)) };
     }
