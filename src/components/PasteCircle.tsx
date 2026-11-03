@@ -6,7 +6,7 @@ import { ClipboardIcon } from "./icons";
 /**
  * The big Paste button. It morphs into the status circle of the next page (`morph`), and shakes "no" through
  * `buttonRef` when what was pasted is not recognised; `invalid` rings it in red.
- * While `pulse` is on it invites: a soft halo breathes out from behind it (3.6 s a cycle, transform and opacity only,
+ * While `pulse` is on it invites: a soft halo, 24px beyond its rim, breathes out from behind it (3.6 s a cycle, transform and opacity only,
  * on a span inside the button, never on the element that morphs). The halo is gone while the button is pressed
  * and while it shakes, and it does not run at all under reduced motion.
  */
@@ -40,10 +40,11 @@ export function PasteCircle({
       {pulse && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 rounded-full transition-opacity duration-(--duration-fast) group-active:opacity-0 group-data-shaking:opacity-0"
+          className="pointer-events-none absolute -inset-6 -z-10 rounded-full transition-opacity duration-(--duration-fast) group-active:opacity-0 group-data-shaking:opacity-0"
         >
-          {/* Ink at the rim of the circle (where it ends once the halo has grown), fading out to nothing: a glow, no edge. */}
-          <span className="block size-full rounded-full bg-[radial-gradient(closest-side,rgb(16_19_24)_79%,rgb(16_19_24/0.45)_90%,rgb(16_19_24/0)_100%)] opacity-0 motion-safe:animate-breathe" />
+          {/* 24px wider than the circle all round. Solid ink stays hidden behind the circle (75%); from just inside
+              its rim the ink fades out to nothing at the halo's edge: a glow around the circle, no edge. */}
+          <span className="block size-full rounded-full bg-[radial-gradient(closest-side,rgb(16_19_24)_75%,rgb(16_19_24/0)_100%)] opacity-0 motion-safe:animate-breathe" />
         </span>
       )}
       <ClipboardIcon size={32} strokeWidth={1.6} />
