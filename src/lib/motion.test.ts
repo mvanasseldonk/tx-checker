@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { didChange, isCheckable, SHAKE_KEYFRAMES, SHAKE_MS, staggerDelay, textKey } from "./motion";
+import { isCheckable, SHAKE_KEYFRAMES, SHAKE_MS, staggerDelay, textKey } from "./motion";
 
 const ETH_HASH = "0x448f3b960c99ae65462d9440479fadd52ce817971f754fc9ed2030f3d56f1b36";
 const ETH_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
@@ -35,22 +35,6 @@ describe("textKey", () => {
     expect(textKey(null)).toBeNull();
     expect(textKey(undefined)).toBeNull();
     expect(textKey(["a", "b"])).toBeNull();
-  });
-});
-
-describe("didChange", () => {
-  it("is true when the word became another one", () => {
-    expect(didChange("Pending", "Success")).toBe(true);
-    expect(didChange("Final in ~3 min", "Final in ~2 min")).toBe(true);
-  });
-
-  it("is false for the same text, which is what every poll that finds nothing new renders", () => {
-    expect(didChange("Pending", "Pending")).toBe(false);
-  });
-
-  it("is false for the first render and for text that cannot be compared", () => {
-    expect(didChange(null, "Pending")).toBe(false);
-    expect(didChange("Pending", null)).toBe(false);
   });
 });
 

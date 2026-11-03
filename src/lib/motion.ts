@@ -17,11 +17,6 @@ export function textKey(content: unknown): string | null {
   return typeof content === "string" || typeof content === "number" ? String(content) : null;
 }
 
-/** Did the text change from one render to the next? The first one (`previous` null) does not count. */
-export function didChange(previous: string | null, next: string | null): boolean {
-  return previous !== null && next !== null && previous !== next;
-}
-
 /** When the `index`-th of a row of items starts (ms), `step` apart, after the first `lead`. Late ones all start together. */
 export function staggerDelay(index: number, { step = 40, lead = 0, cap = 8 } = {}): number {
   return lead + Math.min(Math.max(index, 0), cap) * step;
@@ -34,13 +29,10 @@ export const SHAKE_KEYFRAMES: Keyframe[] = [0, -6, 6, -4, 4, -2, 0].map((x, i, a
   offset: i / (all.length - 1),
 }));
 
-/** Should this page move at all? The system setting, or the switch of the motion lab (temporary, S14). */
+/** Should this page move at all? The system setting. */
 export function reducedMotion(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    document.documentElement.hasAttribute("data-reduce-motion")
-  );
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**

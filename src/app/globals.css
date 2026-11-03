@@ -58,26 +58,6 @@
 }
 
 /*
- * motion-safe: and motion-reduce: follow the system setting, and also the switch of the motion lab
- * (/motion, temporary for the S14 review), which sets data-reduce-motion on <html>.
- */
-@custom-variant motion-safe {
-  @media (prefers-reduced-motion: no-preference) {
-    &:where(:root:not([data-reduce-motion]) *) {
-      @slot;
-    }
-  }
-}
-@custom-variant motion-reduce {
-  @media (prefers-reduced-motion: reduce) {
-    @slot;
-  }
-  &:where(:root[data-reduce-motion] *) {
-    @slot;
-  }
-}
-
-/*
  * The fonts, and the animations of the new motion. Inline, so that --delay and --i (the place in a row) are read on the element
  * that animates, not on the page.
  */
