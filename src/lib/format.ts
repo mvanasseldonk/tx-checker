@@ -1,10 +1,14 @@
-/** A token amount as shown in the circle: "1.25", "1,204.5", "0.0042". */
+// Below this even a fee or a dust payment is noise: 1 satoshi, or a billionth of an ETH.
+const SMALLEST_AMOUNT = 0.00000001;
+
+/** A token amount as shown in the circle: "1.25", "1,204.5", "0.0042", "0.000046". */
 export function formatAmount(amount: number): string {
   if (amount === 0) return "0";
-  if (amount < 0.0001) return "<0.0001";
+  if (amount < SMALLEST_AMOUNT) return "<0.00000001";
   return amount.toLocaleString("en-US", amount >= 1
     ? { maximumFractionDigits: amount >= 1000 ? 2 : 4 }
-    : { maximumSignificantDigits: 4 });
+    // Tiny amounts such as today's fees keep two digits that say something.
+    : { maximumSignificantDigits: amount < 0.0001 ? 2 : 4 });
 }
 
 /** A euro value: whole euros from €100 up, cents below. */
