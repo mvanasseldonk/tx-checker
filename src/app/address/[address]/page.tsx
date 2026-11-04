@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { AddressNote } from "@/components/AddressNote";
 import { Checking } from "@/components/Checking";
+import type { Ens } from "@/components/EnsLine";
 import { NotThisOne } from "@/components/NotThisOne";
 import { NothingNew } from "@/components/NothingNew";
 import { PasteScreen } from "@/components/PasteScreen";
@@ -13,7 +14,9 @@ import { Watch, WatchNote } from "@/components/Watch";
 import { LOOKUP_ADDRESS } from "@/lib/address/lookup";
 import { showReceived } from "@/lib/address/received";
 import type { Candidate } from "@/lib/address/types";
-import { detectAddress, type Chain } from "@/lib/detect";
+import { detectAddress, detectEns, type Chain } from "@/lib/detect";
+import { resolveEns } from "@/lib/ens";
+import { shortAddress, shortName } from "@/lib/format";
 import { LOOKUP } from "@/lib/lookup";
 import type { TxStatus } from "@/lib/status";
 import { parseSeen, shownCandidate, WATCH_SECONDS } from "@/lib/watch";
@@ -33,12 +36,45 @@ export default function AddressPage({ params, searchParams }: PageProps<"/addres
 
 function Address({ address, opened }: { address: string; opened: string[] | null }) {
   const detection = detectAddress(address);
-  if (!detection.ok) return <PasteScreen initialInvalid />;
+  if (!detection.ok) {
+    // Only the outer spaces of a name go (detectEns): `foo bar.eth` is not `foobar.eth`, as for an address.
+    const name = detectEns(address);
+    if (!name.ok) return <PasteScreen initialInvalid />;
+    return (
+      <Suspense fallback={<Checking chain="eth" name={name.id} />}>
+        <LiveName input={address} opened={opened} />
+      </Suspense>
+    );
+  }
   return (
     <Suspense fallback={<Checking chain={detection.chain} id={detection.id} />}>
       <LiveAddress chain={detection.chain} address={detection.id} opened={opened} />
     </Suspense>
   );
+}
+
+/**
+ * An ENS name, looked up per request (never cached, and the name shown is the one the lookup returns). From
+ * its address on, the page is the one of that address, with the name above it.
+ */
+async function LiveName({ input, opened }: { input: string; opened: string[] | null }) {
+  await connection();
+  const resolved = await resolveEns(input);
+  if (resolved.kind === "invalid") return <PasteScreen initialInvalid />;
+  if (resolved.kind === "unavailable") {
+    const unavailable = <Unavailable chain="eth" />;
+    return opened ? watching("eth", opened, opened[0] ?? null, unavailable, { failed: true }) : unavailable;
+  }
+  if (resolved.kind === "none") {
+    return (
+      <AddressNote chain="eth" label={shortName(resolved.name, 14)} word="Not found">
+        This ENS name has no address
+      </AddressNote>
+    );
+  }
+  // The address is looked up like a pasted one (lowercase), and shown as the name's record has it.
+  const ens = { name: resolved.name, address: resolved.address };
+  return <LiveAddress chain="eth" address={resolved.address.toLowerCase()} ens={ens} opened={opened} />;
 }
 
 /**
@@ -48,10 +84,12 @@ function Address({ address, opened }: { address: string; opened: string[] | null
 async function LiveAddress({
   chain,
   address,
+  ens,
   opened,
 }: {
   chain: Chain;
   address: string;
+  ens?: Ens;
   opened: string[] | null;
 }) {
   // The latest transaction is live data: look it up per request, never in a prerender that gets cached.
@@ -63,12 +101,12 @@ async function LiveAddress({
   });
   // A failed look in the middle of watching does not end it, nor replace what is shown: the next one may work.
   if (!activity) {
-    const unavailable = <Unavailable chain={chain} />;
+    const unavailable = <Unavailable chain={chain} ens={ens} />;
     return opened ? watching(chain, opened, opened[0] ?? null, unavailable, { failed: true }) : unavailable;
   }
   if (activity.kind === "busy") {
     return (
-      <AddressNote chain={chain} address={address} word="Busy">
+      <AddressNote chain={chain} label={shortAddress(ens?.address ?? address)} ens={ens} word="Busy">
         This address is too busy · paste the transaction instead
       </AddressNote>
     );
@@ -88,12 +126,13 @@ async function LiveAddress({
       <NothingNew
         chain={chain}
         address={address}
+        ens={ens}
         empty={candidates.length === 0}
         below={<NotThisOne candidates={candidates} />}
       />,
     );
   }
-  if (!status) return watching(chain, seen, latest, <Unavailable chain={chain} />, { failed: true });
+  if (!status) return watching(chain, seen, latest, <Unavailable chain={chain} ens={ens} />, { failed: true });
   const ringMoves = status.kind === "pending" || status.kind === "included";
   return watching(
     chain,
@@ -106,6 +145,7 @@ async function LiveAddress({
       id={shown.id}
       status={status}
       direction={shown.direction}
+      ens={ens}
       // Only an outgoing pending transaction can be seen on Ethereum, so this is what it is.
       waiting={chain === "eth" && shown.pending ? "Pending transaction from this address" : undefined}
       arrived={!seen.includes(shown.id)}

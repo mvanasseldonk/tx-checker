@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHAIN_NAME, detectAddress, detectPaste, detectTransaction, shortId } from "./detect";
+import { CHAIN_NAME, detectAddress, detectEns, detectPaste, detectTransaction, shortId } from "./detect";
 
 const ETH_HASH =
   "0x8f2e7a1c94b0d6e3f1a25c7b8d90e4f3a6b1c2d3e4f5a6b7c8d9e5e3a7d9c41b";
@@ -307,6 +307,40 @@ describe("detectPaste", () => {
     for (const input of ["", "hello", ETH_HASH.slice(0, -1), ETH_ADDRESS.slice(0, -2)]) {
       expect(detectPaste(input), input).toEqual({ ok: false });
     }
+  });
+});
+
+describe("detectEns", () => {
+  it("recognises a .eth name, a subname and an emoji name", () => {
+    expect(detectEns("asseldonk.eth")).toEqual({ ok: true, chain: "eth", id: "asseldonk.eth" });
+    expect(detectEns("jesse.base.eth")).toMatchObject({ ok: true, id: "jesse.base.eth" });
+    expect(detectEns("🦄.eth")).toMatchObject({ ok: true, id: "🦄.eth" });
+  });
+
+  it("lowercases and ignores spaces around the name", () => {
+    expect(detectEns("ASSELDONK.ETH")).toMatchObject({ ok: true, id: "asseldonk.eth" });
+    expect(detectEns("  asseldonk.eth \n")).toMatchObject({ ok: true, id: "asseldonk.eth" });
+  });
+
+  it("never closes a space inside the name", () => {
+    for (const input of ["foo bar.eth", "foo\nbar.eth", "foo\tbar.eth", "foo .eth bar.eth"]) {
+      expect(detectEns(input), input).toEqual({ ok: false });
+      expect(detectPaste(input), input).toEqual({ ok: false });
+    }
+  });
+
+  it("rejects what is not a .eth name", () => {
+    for (const input of ["", ".eth", " .eth ", "eth", "foo.com", "foo.eth.com", "foo.sol", "foo.cb.id", "foo.eth/bar", "https://foo.eth"]) {
+      expect(detectEns(input), input).toEqual({ ok: false });
+    }
+  });
+
+  it("is a name in detectPaste, after a transaction and an address", () => {
+    expect(detectPaste(" Asseldonk.eth ")).toEqual({ ok: true, kind: "ens", chain: "eth", id: "asseldonk.eth" });
+    expect(detectPaste(ETH_HASH)).toMatchObject({ kind: "tx" });
+    expect(detectPaste(ETH_ADDRESS)).toMatchObject({ kind: "address" });
+    expect(detectAddress("asseldonk.eth")).toEqual({ ok: false });
+    expect(detectTransaction("asseldonk.eth")).toEqual({ ok: false });
   });
 });
 

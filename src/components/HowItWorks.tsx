@@ -5,7 +5,7 @@ import { HelpIcon } from "./icons";
 import { Sheet, type SheetHandle } from "./Sheet";
 
 const STEPS = [
-  "Copy the transaction hash or an address from your wallet or exchange.",
+  "Copy the transaction hash or address from your wallet or exchange, or use an ENS name.",
   "Tap Paste. Your phone may ask for permission first.",
   "Keep the page open. It updates by itself.",
 ];

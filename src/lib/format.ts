@@ -27,6 +27,15 @@ export function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+/** An ENS name cut in the middle to at most `max` characters, keeping its start and its end: asseldon…yname.eth */
+export function shortName(name: string, max: number): string {
+  // By character, not by UTF-16 unit, so that an emoji is never cut in two.
+  const chars = Array.from(name);
+  if (chars.length <= max) return name;
+  const tail = Math.floor((max - 1) / 2);
+  return `${chars.slice(0, max - 1 - tail).join("")}…${chars.slice(-tail).join("")}`;
+}
+
 /** Time left as shown under the status word: "~13 s", "~14 min". */
 export function formatWait(seconds: number): string {
   return seconds < 60 ? `~${Math.ceil(seconds)} s` : `~${Math.ceil(seconds / 60)} min`;

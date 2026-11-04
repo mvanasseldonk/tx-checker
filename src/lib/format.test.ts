@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatEur, formatTime, shortAddress } from "./format";
+import { formatAmount, formatEur, formatTime, shortAddress, shortName } from "./format";
 
 describe("formatAmount", () => {
   it("keeps amounts short", () => {
@@ -26,6 +26,24 @@ describe("formatEur", () => {
 describe("shortAddress", () => {
   it("keeps the head and tail", () => {
     expect(shortAddress("0x12ab34cd56ef7890a1b2c3d4e5f60718293a9f3c")).toBe("0x12ab…9f3c");
+  });
+});
+
+describe("shortName", () => {
+  it("keeps a name that fits", () => {
+    expect(shortName("asseldonk.eth", 20)).toBe("asseldonk.eth");
+  });
+
+  it("cuts a long name in the middle, within the limit", () => {
+    const short = shortName("a-very-long-name-indeed-for-ens.eth", 20);
+    expect(short).toBe("a-very-lon…r-ens.eth");
+    expect(Array.from(short)).toHaveLength(20);
+  });
+
+  it("does not cut an emoji in two", () => {
+    const short = shortName("🦄".repeat(30) + ".eth", 14);
+    expect(Array.from(short)).toHaveLength(14);
+    expect(short).toMatch(/^(🦄)+…(🦄)*\.eth$/u);
   });
 });
 

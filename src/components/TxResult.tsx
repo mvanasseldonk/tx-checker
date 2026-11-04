@@ -4,6 +4,7 @@ import { shortId, type Chain } from "@/lib/detect";
 import { formatAmount, formatEur, formatWait, shortAddress } from "@/lib/format";
 import type { TxStatus, TxValue } from "@/lib/status";
 import { DetailsSheet } from "./DetailsSheet";
+import { EnsLine, type Ens } from "./EnsLine";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
 import { ArrowRightIcon, LockIcon } from "./icons";
@@ -50,7 +51,8 @@ function placeInLine(blocksAway: number): string {
 
 /**
  * One status circle, one status word and at most one line. Found through an address, it also
- * says whether the transaction was `direction` and has `below` it a way to pick another one;
+ * says whether the transaction was `direction` and has `below` it a way to pick another one, and, when it
+ * went by an ENS name, that name above it (`ens`);
  * `waiting` is then what a pending transaction says when it has no cause to show, and `arrived`
  * that it turned up just now, while the address was being watched.
  */
@@ -59,6 +61,7 @@ export function TxResult({
   id,
   status,
   direction,
+  ens,
   waiting = "Waiting to be included",
   arrived = false,
   below,
@@ -67,11 +70,17 @@ export function TxResult({
   id: string;
   status: TxStatus;
   direction?: Direction;
+  ens?: Ens;
   waiting?: string;
   arrived?: boolean;
   below?: React.ReactNode;
 }) {
-  const label = direction && <DirectionLabel direction={direction} />;
+  const label = (ens || direction) && (
+    <>
+      {ens && <EnsLine ens={ens} />}
+      {direction && <DirectionLabel direction={direction} />}
+    </>
+  );
   if (status.kind === "replaced") {
     return (
       <Frame chain={chain} pasteAgain>

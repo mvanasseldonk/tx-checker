@@ -1,13 +1,17 @@
 import { shortId, type Chain } from "@/lib/detect";
+import { shortName } from "@/lib/format";
 import { Frame } from "./Frame";
 import { Ring } from "./StatusCircle";
 
-/** The circle spinning while a transaction is looked up. */
-export function Checking({ chain, id }: { chain?: Chain; id?: string }) {
+const CIRCLE_NAME = 14;
+
+/** The circle spinning while a transaction is looked up; for an ENS name, it holds the (shortened) name. */
+export function Checking({ chain, id, name }: { chain?: Chain; id?: string; name?: string }) {
   return (
     <Frame chain={chain} checking>
       <Ring color="#101318" track="rgba(16,19,24,0.08)" progress={0.15} spinning>
         {chain && id && <span className="font-mono text-[15px] text-muted">{shortId(chain, id)}</span>}
+        {name && <span className="font-mono text-[15px] text-muted">{shortName(name, CIRCLE_NAME)}</span>}
       </Ring>
       <p role="status" className="text-[15px] text-muted">
         Checking

@@ -15,6 +15,19 @@ describe("decidePaste", () => {
     expect(decidePaste(ETH_ADDRESS)).toEqual({ kind: "open", href: `/address/${ETH_ADDRESS}` });
   });
 
+  it("opens an ENS name, lowercase and encoded", () => {
+    expect(decidePaste("asseldonk.eth")).toEqual({ kind: "open", href: "/address/asseldonk.eth" });
+    expect(decidePaste("  ASSELDONK.ETH\n")).toEqual({ kind: "open", href: "/address/asseldonk.eth" });
+    expect(decidePaste("jesse.base.eth")).toEqual({ kind: "open", href: "/address/jesse.base.eth" });
+    expect(decidePaste("🦄.eth")).toEqual({ kind: "open", href: "/address/%F0%9F%A6%84.eth" });
+  });
+
+  it("does not turn a name with a space inside into another name", () => {
+    expect(decidePaste("foo bar.eth")).toEqual({ kind: "invalid" });
+    expect(decidePaste(".eth")).toEqual({ kind: "invalid" });
+    expect(decidePaste("foo.com")).toEqual({ kind: "invalid" });
+  });
+
   it("does not recognise other text", () => {
     expect(decidePaste("hello world")).toEqual({ kind: "invalid" });
     expect(decidePaste("0x1234")).toEqual({ kind: "invalid" });
