@@ -1,4 +1,4 @@
-import type { Chain } from "../detect";
+import type { AddressChain } from "../detect";
 import type { Price } from "../prices";
 import type { AddressActivity, Candidate } from "./types";
 
@@ -12,11 +12,11 @@ export const SOL_DUST = 0.001;
 
 // The 5th newest transaction being younger than this means the address is too busy to guess
 // which transaction the user means. A starting point, to be tuned.
-const BUSY_SECONDS: Record<Chain, number> = { eth: 10 * 60, sol: 10 * 60, btc: 60 * 60 };
+const BUSY_SECONDS: Record<AddressChain, number> = { eth: 10 * 60, sol: 10 * 60, btc: 60 * 60 };
 
 // Tokens everybody knows: never taken for spam because the price service has nothing on them.
 // ETH by contract (lowercase), SOL by mint.
-const WELL_KNOWN: Record<Exclude<Chain, "btc">, Set<string>> = {
+const WELL_KNOWN: Record<Exclude<AddressChain, "btc">, Set<string>> = {
   eth: new Set([
     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
     "0xdac17f958d2ee523a2206206994597c13d831ec7", // USDT
@@ -30,7 +30,7 @@ const WELL_KNOWN: Record<Exclude<Chain, "btc">, Set<string>> = {
   ]),
 };
 
-export function isWellKnownToken(chain: Exclude<Chain, "btc">, token: string): boolean {
+export function isWellKnownToken(chain: Exclude<AddressChain, "btc">, token: string): boolean {
   return WELL_KNOWN[chain].has(token);
 }
 
@@ -47,7 +47,7 @@ export function worthShowing(amount: number, price: Price, real: boolean): boole
 }
 
 /** Too busy to tell which transaction is meant: the 5th newest is still very recent. */
-export function isBusy(chain: Chain, candidates: Candidate[], now: number): boolean {
+export function isBusy(chain: AddressChain, candidates: Candidate[], now: number): boolean {
   const fifth = candidates[RECENT - 1];
   if (!fifth) return false;
   // Pending has no time yet: it is happening now.
@@ -61,7 +61,7 @@ export function isBusy(chain: Chain, candidates: Candidate[], now: number): bool
  * five real ones may not have fit.
  */
 export function summarize(
-  chain: Chain,
+  chain: AddressChain,
   recent: Candidate[],
   now: number,
   seenSince: number | null = null,

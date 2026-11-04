@@ -1,6 +1,9 @@
 import { cacheLife } from "next/cache";
+import type { EvmChain } from "./detect";
+import { NETWORKS } from "./networks";
 
-// Contracts people send transactions to most, by lowercase address.
+// Contracts people send transactions to most on Ethereum, by lowercase address. The same address on another
+// network can be a different contract, so these are used for Ethereum only.
 const KNOWN: Record<string, string> = {
   "0x66a9893cc07d91d95644aedd05d03f95e1dba8af": "Uniswap",
   "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad": "Uniswap",
@@ -14,24 +17,24 @@ const KNOWN: Record<string, string> = {
   "0xdef1c0ded9bec7f1a1670819833240f027b25eff": "0x",
 };
 
-/** A contract's name: a well-known one, or the verified name on Etherscan. */
-export async function contractName(address: string): Promise<string | null> {
-  const known = KNOWN[address.toLowerCase()];
+/** A contract's name: a well-known one (Ethereum only), or the verified name on the network's Etherscan. */
+export async function contractName(address: string, network: EvmChain = "eth"): Promise<string | null> {
+  const known = network === "eth" ? KNOWN[address.toLowerCase()] : undefined;
   if (known) return known;
   if (!process.env.ETHERSCAN_API_KEY) return null;
   try {
-    return await etherscanName(address.toLowerCase());
+    return await etherscanName(address.toLowerCase(), NETWORKS[network].chain.id);
   } catch {
     return null;
   }
 }
 
-async function etherscanName(address: string): Promise<string | null> {
+async function etherscanName(address: string, chainId: number): Promise<string | null> {
   "use cache";
   cacheLife("days");
   const url = new URL("https://api.etherscan.io/v2/api");
   url.search = new URLSearchParams({
-    chainid: "1",
+    chainid: String(chainId),
     module: "contract",
     action: "getsourcecode",
     address,

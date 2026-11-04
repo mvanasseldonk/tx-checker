@@ -1,17 +1,37 @@
 import { isAddress, sha256 } from "viem";
 
-export type Chain = "eth" | "sol" | "btc";
+/** The Ethereum networks: a 0x hash does not say which one it is on. */
+export const EVM_CHAINS = ["eth", "base", "arb", "op"] as const;
+export type EvmChain = (typeof EVM_CHAINS)[number];
 
+export type Chain = EvmChain | "sol" | "btc";
+
+/** The chains with address pages: the L2s have transactions only, until addresses come to them. */
+export type AddressChain = "eth" | "sol" | "btc";
+
+export function isEvm(chain: Chain): chain is EvmChain {
+  return (EVM_CHAINS as readonly string[]).includes(chain);
+}
+
+/**
+ * `explorer` is set when an EVM explorer link named the network: a bare 0x hash is read as `eth`, but
+ * could be on any network.
+ */
 export type Detection =
-  | { ok: true; chain: Chain; id: string }
+  | { ok: true; chain: Chain; id: string; explorer?: true }
+  | { ok: false };
+
+export type AddressDetection =
+  | { ok: true; chain: AddressChain; id: string }
   | { ok: false };
 
 /** What was pasted: a transaction (hash, signature, txid), an address or an ENS name, on a chain. */
 export type Pasted =
-  | { ok: true; kind: "tx" | "address" | "ens"; chain: Chain; id: string }
+  | { ok: true; kind: "tx"; chain: Chain; id: string; explorer?: true }
+  | { ok: true; kind: "address" | "ens"; chain: AddressChain; id: string }
   | { ok: false };
 
-const INVALID: Detection = { ok: false };
+const INVALID = { ok: false } as const;
 
 const ENS_SUFFIX = ".eth";
 
@@ -39,9 +59,13 @@ const BTC_BASE58_VERSIONS = [0x00, 0x05];
 const SOLANA_ADDRESS_BYTES = 32;
 
 // Mainnet explorers only: subdomains such as sepolia.etherscan.io are testnets.
-// `addressPath` is where each one keeps its address pages.
-const EXPLORERS: Record<string, { chain: Chain; addressPath: string }> = {
+// `addressPath` is where each one keeps its address pages; the L2 explorers have none, as their addresses
+// are not supported yet (an address on Base is not the same account as the one on Ethereum).
+const EXPLORERS: Record<string, { chain: Chain; addressPath?: string }> = {
   "etherscan.io": { chain: "eth", addressPath: "address" },
+  "basescan.org": { chain: "base" },
+  "arbiscan.io": { chain: "arb" },
+  "optimistic.etherscan.io": { chain: "op" },
   "solscan.io": { chain: "sol", addressPath: "account" },
   "mempool.space": { chain: "btc", addressPath: "address" },
   "blockstream.info": { chain: "btc", addressPath: "address" },
@@ -49,25 +73,28 @@ const EXPLORERS: Record<string, { chain: Chain; addressPath: string }> = {
 const SOLSCAN_MAINNET_CLUSTERS = new Set(["mainnet", "mainnet-beta"]);
 
 /**
- * Recognises a pasted Ethereum hash, Bitcoin txid, Solana signature or explorer link to one.
+ * Recognises a pasted Ethereum hash, Bitcoin txid, Solana signature or explorer link to one (Etherscan, Basescan,
+ * Arbiscan and Optimistic Etherscan name their network; a bare hash does not).
  * Runs entirely locally, so invalid input never costs an API call.
  */
 export function detectTransaction(input: string): Detection {
   const text = input.replace(/\s+/g, "");
   if (!looksLikeExplorerUrl(text)) return detectId(text);
   const link = parseExplorerLink(text);
-  return link?.kind === "tx" ? detectOnChain(detectId(link.value), link.chain) : INVALID;
+  if (link?.kind !== "tx") return INVALID;
+  const detection = detectOnChain(detectId(link.value), link.chain);
+  return detection.ok && isEvm(link.chain) ? { ...detection, chain: link.chain, explorer: true } : detection;
 }
 
 /**
  * Recognises a pasted Ethereum, Bitcoin or Solana address, or an explorer link to one. Addresses
  * are checked as far as can be done locally (checksums, decoded length), so a typo is caught here.
  */
-export function detectAddress(input: string): Detection {
+export function detectAddress(input: string): AddressDetection {
   const text = input.replace(/\s+/g, "");
   if (!looksLikeExplorerUrl(text)) return detectAddressId(text);
   const link = parseExplorerLink(text);
-  return link?.kind === "address" ? detectOnChain(detectAddressId(link.value), link.chain) : INVALID;
+  return link?.kind === "address" ? detectAddressOnChain(detectAddressId(link.value), link.chain) : INVALID;
 }
 
 /**
@@ -75,7 +102,7 @@ export function detectAddress(input: string): Detection {
  * viem) are about 45 kB and run on the server only, which rejects what passes here but is not a name.
  * Only the outer whitespace goes: `foo bar.eth` must never become `foobar.eth`, as the other detections would.
  */
-export function detectEns(input: string): Detection {
+export function detectEns(input: string): AddressDetection {
   const name = input.trim().toLowerCase();
   if (name.length <= ENS_SUFFIX.length || !name.endsWith(ENS_SUFFIX) || /[\s/]/.test(name)) return INVALID;
   return { ok: true, chain: "eth", id: name };
@@ -98,7 +125,7 @@ function detectId(id: string): Detection {
   return INVALID;
 }
 
-function detectAddressId(id: string): Detection {
+function detectAddressId(id: string): AddressDetection {
   if (ETH_ADDRESS.test(id)) {
     return hasValidEthCase(id) ? { ok: true, chain: "eth", id: id.toLowerCase() } : INVALID;
   }
@@ -118,6 +145,12 @@ function detectAddressId(id: string): Detection {
 }
 
 function detectOnChain(detection: Detection, chain: Chain): Detection {
+  // A hash is read as Ethereum's: on an L2 explorer it is that network's.
+  const same = isEvm(chain) ? detection.ok && detection.chain === "eth" : detection.ok && detection.chain === chain;
+  return same ? detection : INVALID;
+}
+
+function detectAddressOnChain(detection: AddressDetection, chain: Chain): AddressDetection {
   return detection.ok && detection.chain === chain ? detection : INVALID;
 }
 
@@ -214,9 +247,21 @@ function hasValidBech32Checksum(address: string): boolean {
 
 /** Shortens a hash or signature for display, e.g. 0x8f2e…c41b. */
 export function shortId(chain: Chain, id: string): string {
-  const head = chain === "eth" ? 6 : 4;
+  const head = isEvm(chain) ? 6 : 4;
   return `${id.slice(0, head)}…${id.slice(-4)}`;
 }
 
 /** The chain's name, as a screen reader should hear it (the screen shows its logo). */
-export const CHAIN_NAME: Record<Chain, string> = { eth: "Ethereum", sol: "Solana", btc: "Bitcoin" };
+export const CHAIN_NAME: Record<Chain, string> = {
+  eth: "Ethereum",
+  base: "Base",
+  arb: "Arbitrum",
+  op: "Optimism",
+  sol: "Solana",
+  btc: "Bitcoin",
+};
+
+/** A `chain` query value as the EVM network it names, or null for anything else (it is then ignored). */
+export function parseNetwork(value: string | string[] | undefined): EvmChain | null {
+  return EVM_CHAINS.find((chain) => chain === value) ?? null;
+}

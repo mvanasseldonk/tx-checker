@@ -5,7 +5,8 @@ import { Heading } from "./Heading";
 import { Retry } from "./Retry";
 
 /** The lookup itself failed: say so instead of guessing a status. */
-export function Unavailable({ chain, ens }: { chain: Chain; ens?: Ens }) {
+// No `chain` while the network of the transaction is not known: that page shows no logo yet.
+export function Unavailable({ chain, ens }: { chain?: Chain; ens?: Ens }) {
   return (
     <Frame chain={chain} pasteAgain>
       {ens && <EnsLine ens={ens} />}

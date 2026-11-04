@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHAIN_NAME, detectAddress, detectEns, detectPaste, detectTransaction, shortId } from "./detect";
+import { CHAIN_NAME, detectAddress, detectEns, detectPaste, detectTransaction, parseNetwork, shortId } from "./detect";
 
 const ETH_HASH =
   "0x8f2e7a1c94b0d6e3f1a25c7b8d90e4f3a6b1c2d3e4f5a6b7c8d9e5e3a7d9c41b";
@@ -347,6 +347,7 @@ describe("detectEns", () => {
 describe("shortId", () => {
   it("shortens hashes for display", () => {
     expect(shortId("eth", ETH_HASH)).toBe("0x8f2e…c41b");
+    expect(shortId("base", ETH_HASH)).toBe("0x8f2e…c41b");
     expect(shortId("sol", "5VERv8NMvzbJ")).toBe("5VER…vzbJ");
     expect(shortId("btc", BTC_TXID)).toBe("9fab…3034");
   });
@@ -354,6 +355,61 @@ describe("shortId", () => {
 
 describe("CHAIN_NAME", () => {
   it("names each chain in full, for screen readers", () => {
-    expect(CHAIN_NAME).toEqual({ eth: "Ethereum", sol: "Solana", btc: "Bitcoin" });
+    expect(CHAIN_NAME).toEqual({
+      eth: "Ethereum",
+      base: "Base",
+      arb: "Arbitrum",
+      op: "Optimism",
+      sol: "Solana",
+      btc: "Bitcoin",
+    });
+  });
+});
+
+describe("L2 explorers", () => {
+  it("reads a Basescan, Arbiscan or Optimistic Etherscan link as a transaction on that network", () => {
+    for (const [host, chain] of [
+      ["basescan.org", "base"],
+      ["arbiscan.io", "arb"],
+      ["optimistic.etherscan.io", "op"],
+    ] as const) {
+      expect(detectTransaction(`https://${host}/tx/${ETH_HASH}`)).toEqual({ ok: true, chain, id: ETH_HASH, explorer: true });
+      expect(detectPaste(`${host}/tx/${ETH_HASH}?utm=x#eventlog`)).toMatchObject({ kind: "tx", chain, explorer: true });
+    }
+  });
+
+  it("names the network of an Etherscan link too, but not of a bare hash", () => {
+    expect(detectTransaction(`https://etherscan.io/tx/${ETH_HASH}`)).toMatchObject({ chain: "eth", explorer: true });
+    expect(detectTransaction(ETH_HASH)).toEqual({ ok: true, chain: "eth", id: ETH_HASH });
+  });
+
+  it("keeps testnet explorers invalid", () => {
+    for (const host of ["sepolia.basescan.org", "sepolia.arbiscan.io", "sepolia-optimism.etherscan.io", "goerli.basescan.org"]) {
+      expect(detectTransaction(`https://${host}/tx/${ETH_HASH}`)).toEqual({ ok: false });
+    }
+  });
+
+  it("does not take an L2 address link for an Ethereum address", () => {
+    for (const host of ["basescan.org", "arbiscan.io", "optimistic.etherscan.io"]) {
+      expect(detectAddress(`https://${host}/address/${ETH_ADDRESS}`)).toEqual({ ok: false });
+      expect(detectPaste(`https://${host}/address/${ETH_ADDRESS}`)).toEqual({ ok: false });
+      expect(detectTransaction(`https://${host}/address/${ETH_ADDRESS}`)).toEqual({ ok: false });
+    }
+  });
+
+  it("rejects a Bitcoin or Solana id on an L2 explorer", () => {
+    expect(detectTransaction(`https://basescan.org/tx/${BTC_TXID}`)).toEqual({ ok: false });
+    expect(detectTransaction(`https://arbiscan.io/tx/${SOL_SIG}`)).toEqual({ ok: false });
+  });
+});
+
+describe("parseNetwork", () => {
+  it("reads the chain query, and ignores anything else", () => {
+    expect(parseNetwork("base")).toBe("base");
+    expect(parseNetwork("eth")).toBe("eth");
+    expect(parseNetwork("x")).toBeNull();
+    expect(parseNetwork("sol")).toBeNull();
+    expect(parseNetwork(["base", "op"])).toBeNull();
+    expect(parseNetwork(undefined)).toBeNull();
   });
 });

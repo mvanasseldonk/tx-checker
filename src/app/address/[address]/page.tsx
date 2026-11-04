@@ -14,7 +14,7 @@ import { Watch, WatchNote } from "@/components/Watch";
 import { LOOKUP_ADDRESS } from "@/lib/address/lookup";
 import { showReceived } from "@/lib/address/received";
 import type { Candidate } from "@/lib/address/types";
-import { detectAddress, detectEns, type Chain } from "@/lib/detect";
+import { detectAddress, detectEns, type AddressChain } from "@/lib/detect";
 import { resolveEns } from "@/lib/ens";
 import { shortAddress, shortName } from "@/lib/format";
 import { logFailure } from "@/lib/logError";
@@ -88,7 +88,7 @@ async function LiveAddress({
   ens,
   opened,
 }: {
-  chain: Chain;
+  chain: AddressChain;
   address: string;
   ens?: Ens;
   opened: string[] | null;
@@ -129,7 +129,7 @@ async function LiveAddress({
         address={address}
         ens={ens}
         empty={candidates.length === 0}
-        below={<NotThisOne candidates={candidates} />}
+        below={<NotThisOne chain={chain} candidates={candidates} />}
       />,
     );
   }
@@ -153,7 +153,7 @@ async function LiveAddress({
       below={
         <div className="flex w-full flex-col items-center gap-1">
           <WatchNote ringMoves={ringMoves} />
-          <NotThisOne candidates={candidates} currentId={shown.id} />
+          <NotThisOne chain={chain} candidates={candidates} currentId={shown.id} />
         </div>
       }
     />,
@@ -163,7 +163,7 @@ async function LiveAddress({
 }
 
 function watching(
-  chain: Chain,
+  chain: AddressChain,
   seen: string[],
   latest: string | null,
   page: React.ReactNode,
@@ -177,7 +177,7 @@ function watching(
 }
 
 /** The status of a transaction of the address, with what the address received in it; null if that failed. */
-function statusOf(chain: Chain, address: string, candidate: Candidate): Promise<TxStatus | null> {
+function statusOf(chain: AddressChain, address: string, candidate: Candidate): Promise<TxStatus | null> {
   return LOOKUP[chain](candidate.id)
     .then((found) => showReceived(chain, address, found, candidate))
     .catch((error: unknown) => {

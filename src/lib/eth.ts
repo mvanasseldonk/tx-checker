@@ -14,8 +14,9 @@ import {
   type Transaction,
   type TransactionReceipt,
 } from "viem";
-import { mainnet } from "viem/chains";
+import type { EvmChain } from "./detect";
 import { methodName } from "./method";
+import { feeWei, NETWORKS, waitToFinal } from "./networks";
 import { contractName } from "./names";
 import { eurPrice } from "./prices";
 import { describeRevert } from "./revert";
@@ -28,31 +29,35 @@ import {
   type TxValue,
 } from "./status";
 
-const SECONDS_PER_SLOT = 12;
-const SLOTS_PER_EPOCH = 32;
-const BEACON_GENESIS = 1606824023;
+const clients: Partial<Record<EvmChain, PublicClient>> = {};
 
-let client: PublicClient | undefined;
-
-export function ethClient(): PublicClient {
+/** The client of one network, made on first use. */
+export function evmClient(network: EvmChain): PublicClient {
   const key = process.env.ALCHEMY_API_KEY;
   if (!key) throw new Error("ALCHEMY_API_KEY is not set");
-  client ??= createPublicClient({
-    chain: mainnet,
-    transport: http(`https://eth-mainnet.g.alchemy.com/v2/${key}`, { timeout: 2500 }),
-  });
-  return client;
+  const { chain, alchemy } = NETWORKS[network];
+  // The OP Stack chains bring their own receipt format (with `l1Fee`), which a plain PublicClient does not type.
+  clients[network] ??= createPublicClient({
+    chain,
+    transport: http(`https://${alchemy}.g.alchemy.com/v2/${key}`, { timeout: 2500 }),
+  }) as PublicClient;
+  return clients[network];
 }
 
-/** Looks up an Ethereum mainnet transaction and what to tell the user about it. */
-export async function lookupEth(hash: Hash): Promise<TxStatus> {
-  const client = ethClient();
+/** The Ethereum mainnet client, for names and addresses. */
+export function ethClient(): PublicClient {
+  return evmClient("eth");
+}
+
+/** Looks up a transaction on Ethereum or one of its L2s, and what to tell the user about it. */
+export async function lookupEth(network: EvmChain, hash: Hash): Promise<TxStatus> {
+  const client = evmClient(network);
   const [tx, receipt] = await Promise.all([
     client.getTransaction({ hash }).catch(nullIf(TransactionNotFoundError)),
     client.getTransactionReceipt({ hash }).catch(nullIf(TransactionReceiptNotFoundError)),
   ]);
   if (!tx) return { kind: "notFound" };
-  if (!receipt) return pending(client, tx);
+  if (!receipt) return pending(network, client, tx);
 
   const [block, finalized] = await Promise.all([
     client.getBlock({ blockNumber: receipt.blockNumber }),
@@ -63,7 +68,7 @@ export async function lookupEth(hash: Hash): Promise<TxStatus> {
 
   if (receipt.status === "reverted") {
     const [described, reason, fee] = await Promise.all([
-      describeValue(client, tx, at, ethEur),
+      describeValue(network, client, tx, at, ethEur),
       revertReason(client, tx, receipt),
       feePaid(receipt, ethEur),
     ]);
@@ -72,28 +77,20 @@ export async function lookupEth(hash: Hash): Promise<TxStatus> {
   }
 
   const [described, fee] = await Promise.all([
-    describeValue(client, tx, at, ethEur),
+    describeValue(network, client, tx, at, ethEur),
     feePaid(receipt, ethEur),
   ]);
   const { value } = described;
   const details = await detailsOf(tx, described, fee, at, ethEur);
   if (receipt.blockNumber <= finalized.number) return { kind: "final", value, details };
-  const finalAt = finalizedAt(at);
-  const now = Date.now() / 1000;
-  return {
-    kind: "included",
-    value,
-    details,
-    progress: Math.min(1, Math.max(0, (now - at) / (finalAt - at))),
-    secondsToFinal: Math.max(1, finalAt - now),
-  };
+  return { kind: "included", value, details, ...waitToFinal(network, at, Date.now() / 1000) };
 }
 
 type Described = { value: TxValue; to: TxRecipient | null };
 
 /** The gas the receipt says was paid, in ETH and euros. */
 async function feePaid(receipt: TransactionReceipt, ethEur: Promise<number | null>): Promise<TxAmount> {
-  const amount = Number(formatEther(receipt.gasUsed * receipt.effectiveGasPrice));
+  const amount = Number(formatEther(feeWei(receipt)));
   const price = await ethEur;
   return { amount, symbol: "ETH", eur: price === null ? null : amount * price };
 }
@@ -108,24 +105,13 @@ async function detailsOf(
   return { from: tx.from, to, amount: detailAmount(value, "ETH", await ethEur), fee, time };
 }
 
-/**
- * When a block is expected to be final. The chain finalizes the first slot of the epoch two
- * epochs behind the current one, so a block is final two epochs after the first epoch that
- * starts at or after it.
- */
-function finalizedAt(blockTime: number): number {
-  const epochSeconds = SLOTS_PER_EPOCH * SECONDS_PER_SLOT;
-  const nextEpoch = Math.ceil((blockTime - BEACON_GENESIS) / epochSeconds);
-  return BEACON_GENESIS + (nextEpoch + 2) * epochSeconds;
-}
-
 // No fee to show yet: gas is only charged once the transaction is in a block.
-async function pending(client: PublicClient, tx: Transaction): Promise<TxStatus> {
+async function pending(network: EvmChain, client: PublicClient, tx: Transaction): Promise<TxStatus> {
   const ethEur = eurPrice("ethereum", null);
   const [latest, confirmedNonce, described] = await Promise.all([
     client.getBlock({ blockTag: "latest" }),
     client.getTransactionCount({ address: tx.from, blockTag: "latest" }),
-    describeValue(client, tx, null, ethEur),
+    describeValue(network, client, tx, null, ethEur),
   ]);
   const maxFee = tx.maxFeePerGas ?? tx.gasPrice ?? 0n;
   const cause =
@@ -143,6 +129,7 @@ async function pending(client: PublicClient, tx: Transaction): Promise<TxStatus>
  * the recipient of a transfer, the contract of a call.
  */
 async function describeValue(
+  network: EvmChain,
   client: PublicClient,
   tx: Transaction,
   at: number | null,
@@ -158,14 +145,14 @@ async function describeValue(
   }
   const token = await tokenTransfer(client, tx);
   if (token) {
-    const price = await eurPrice({ platform: "ethereum", address: tx.to }, at);
+    const price = await eurPrice({ platform: NETWORKS[network].platform, address: tx.to }, at);
     const { to, ...transfer } = token;
     return {
       value: { ...transfer, kind: "amount", eur: price === null ? null : token.amount * price },
       to: { address: to, name: null, method: null },
     };
   }
-  const name = await contractName(tx.to);
+  const name = await contractName(tx.to, network);
   return {
     value: { kind: "call", name, address: tx.to, sent: Number(formatEther(tx.value)) },
     to: { address: tx.to, name, method: methodName(tx.input) },

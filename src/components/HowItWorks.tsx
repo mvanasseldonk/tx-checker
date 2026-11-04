@@ -72,7 +72,7 @@ export function HowItWorks() {
           ))}
         </dl>
         <p className={`${SECTION} text-muted`}>
-          Works with Ethereum, Solana, and Bitcoin. Ancoro only reads public blockchain data. It never asks for your
+          Works with Ethereum, Solana, and Bitcoin, and transactions on Base, Arbitrum, and Optimism. Ancoro only reads public blockchain data. It never asks for your
           keys and can&apos;t touch your funds. No accounts, no tracking, and no history of what you check.
         </p>
       </Sheet>

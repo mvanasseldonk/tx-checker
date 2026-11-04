@@ -6,20 +6,28 @@ import { CHAIN_NAME, type Chain } from "@/lib/detect";
  *   Bitcoin   https://bitcoin.org/en/graphics/bitcoin (the circle with the tilted B, as Bitcoin.svg)
  *   Ethereum  https://ethereum.org/en/assets/ (the 2014 diamond, six facets)
  *   Solana    https://solana.com/branding (three slanted bars)
+ *   Base      https://github.com/base/brand-kit, logo/TheSquare/Digital/Base_square_black.svg (the square)
+ *   Optimism  https://www.optimism.io/brand, the "OP Mainnet" symbol (the square with the OP mark cut out of it)
+ *   Arbitrum  no mark yet: its brand kit (arbitrum.io/brand-kit, the foundation's Notion page) could not be read,
+ *             and the mark is not drawn by hand
  * Brand guidelines: no distortion (the viewBox keeps each mark's own proportions), no effects, and clear
  * space around it. The header gives every mark at least half its height of room on all sides.
  *
  * Drawn in one colour, the ink colour (currentColor); the PO chose this over the official colours.
  */
 
-const SIZE: Record<Chain, { viewBox: string; width: number; height: number }> = {
+const SIZE: Partial<Record<Chain, { viewBox: string; width: number; height: number }>> = {
+  base: { viewBox: "0 0 1280 1280", width: 24, height: 24 },
+  op: { viewBox: "841 529 817 817", width: 24, height: 24 },
   btc: { viewBox: "0 0 64 64", width: 24, height: 24 },
   eth: { viewBox: "0 0 256 417", width: 15, height: 24 },
   sol: { viewBox: "0 0 398 312", width: 28, height: 22 },
 };
 
 export function ChainLogo({ chain }: { chain: Chain }) {
-  const { viewBox, width, height } = SIZE[chain];
+  const size = SIZE[chain];
+  if (!size) return null;
+  const { viewBox, width, height } = size;
   return (
     <svg
       role="img"
@@ -33,7 +41,25 @@ export function ChainLogo({ chain }: { chain: Chain }) {
       {chain === "btc" && <Bitcoin />}
       {chain === "eth" && <Ethereum />}
       {chain === "sol" && <Solana />}
+      {chain === "base" && <Base />}
+      {chain === "op" && <Optimism />}
     </svg>
+  );
+}
+
+function Base() {
+  return (
+    <path d="M0,101.12c0-34.64,0-51.95,6.53-65.28,6.25-12.76,16.56-23.07,29.32-29.32C49.17,0,66.48,0,101.12,0h1077.76c34.63,0,51.96,0,65.28,6.53,12.75,6.25,23.06,16.56,29.32,29.32,6.52,13.32,6.52,30.64,6.52,65.28v1077.76c0,34.63,0,51.96-6.52,65.28-6.26,12.75-16.57,23.06-29.32,29.32-13.32,6.52-30.65,6.52-65.28,6.52H101.12c-34.64,0-51.95,0-65.28-6.52-12.76-6.26-23.07-16.57-29.32-29.32-6.53-13.32-6.53-30.65-6.53-65.28V101.12Z" />
+  );
+}
+
+function Optimism() {
+  return (
+    <>
+      <rect x="841" y="529" width="817" height="817" rx="80" />
+      {/* The OP mark is cut out of the square, in the page's ground colour. */}
+      <path fill="var(--color-ground)" d="M1249.77 576.871c156.99 0 284.3 127.309 284.3 284.304 0 156.995-127.31 284.305-284.3 284.305v152.63c-157 0-284.304-127.31-284.304-284.31 0-156.994 127.304-284.301 284.304-284.301V576.871Zm-1.32 219.963c-30.88 62.008-77.33 108.452-139.34 139.337v2.635c62.01 30.884 108.46 77.334 139.34 139.334h2.64c30.88-62 77.33-108.45 139.33-139.334v-2.635c-62-30.885-108.45-77.329-139.33-139.337h-2.64Z" />
+    </>
   );
 }
 
