@@ -78,6 +78,8 @@
      it. Slow, in step, and only while idle. */
   --animate-breathe: breathe 5s ease-in-out infinite;
   --animate-swell: swell 5s ease-in-out infinite;
+  /* The "?" on the Paste screen rocks, much slower and quieter than the circle. */
+  --animate-rock: rock 6s ease-in-out infinite;
   /* A check that replaces an icon. */
   --animate-pop: pop 250ms var(--ease-ancoro);
 
@@ -107,6 +109,14 @@
   @keyframes swell {
     45% {
       transform: scale(1.05);
+    }
+  }
+  @keyframes rock {
+    25% {
+      transform: rotate(-4deg);
+    }
+    75% {
+      transform: rotate(4deg);
     }
   }
   @keyframes breathe {

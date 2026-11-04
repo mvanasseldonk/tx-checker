@@ -6,6 +6,7 @@ import { shake } from "@/lib/motion";
 import type { PasteState } from "@/lib/paste";
 import { HomeWordmark } from "./brand/Brand";
 import { CloseIcon } from "./icons";
+import { HowItWorks } from "./HowItWorks";
 import { PasteCircle } from "./PasteCircle";
 import { TypeField } from "./TypeField";
 import { usePaste } from "./usePaste";
@@ -143,8 +144,9 @@ export function PasteScreen({ initialInvalid = false }: { initialInvalid?: boole
       <Suspense fallback={null}>
         <AskedState onState={askFor} />
       </Suspense>
-      <header className="absolute inset-x-0 top-5 mx-auto flex h-11 w-full max-w-md items-center px-6">
+      <header className="absolute inset-x-0 top-5 mx-auto flex h-11 w-full max-w-md items-center justify-between px-6">
         <HomeWordmark />
+        <HowItWorks />
       </header>
       <PasteCircle
         onClick={paste}
