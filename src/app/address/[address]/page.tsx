@@ -17,6 +17,7 @@ import type { Candidate } from "@/lib/address/types";
 import { detectAddress, detectEns, type Chain } from "@/lib/detect";
 import { resolveEns } from "@/lib/ens";
 import { shortAddress, shortName } from "@/lib/format";
+import { logFailure } from "@/lib/logError";
 import { LOOKUP } from "@/lib/lookup";
 import type { TxStatus } from "@/lib/status";
 import { parseSeen, shownCandidate, WATCH_SECONDS } from "@/lib/watch";
@@ -96,7 +97,7 @@ async function LiveAddress({
   await connection();
   const activity = await LOOKUP_ADDRESS[chain](address).catch((error: unknown) => {
     unstable_rethrow(error);
-    console.error(`Looking up address ${address} failed`, error);
+    logFailure(`Looking up address ${address}`, error);
     return null;
   });
   // A failed look in the middle of watching does not end it, nor replace what is shown: the next one may work.
@@ -181,7 +182,7 @@ function statusOf(chain: Chain, address: string, candidate: Candidate): Promise<
     .then((found) => showReceived(chain, address, found, candidate))
     .catch((error: unknown) => {
       unstable_rethrow(error);
-      console.error(`Looking up ${candidate.id} failed`, error);
+      logFailure(`Looking up ${candidate.id}`, error);
       return null;
     });
 }

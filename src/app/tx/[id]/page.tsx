@@ -7,6 +7,7 @@ import { PasteScreen } from "@/components/PasteScreen";
 import { TxResult } from "@/components/TxResult";
 import { Unavailable } from "@/components/Unavailable";
 import { detectTransaction, type Chain } from "@/lib/detect";
+import { logFailure } from "@/lib/logError";
 import { LOOKUP } from "@/lib/lookup";
 
 // The name comes from the layout: "Transaction · Ancoro".
@@ -37,7 +38,7 @@ async function LiveStatus({ chain, id }: { chain: Chain; id: string }) {
   await connection();
   const status = await LOOKUP[chain](id).catch((error: unknown) => {
     unstable_rethrow(error);
-    console.error(`Looking up ${id} failed`, error);
+    logFailure(`Looking up ${id}`, error);
     return null;
   });
   return status ? <TxResult chain={chain} id={id} status={status} /> : <Unavailable chain={chain} />;
