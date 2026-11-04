@@ -7,7 +7,7 @@ import { ClipboardIcon } from "./icons";
  * The big Paste button. It morphs into the status circle of the next page (`morph`), and shakes "no" through
  * `buttonRef` when what was pasted is not recognised; `invalid` rings it in red.
  * While `pulse` is on it invites: the circle swells by 5% and a soft halo, 12px beyond its rim, breathes out from
- * behind it, in step (3.6 s a cycle, transform and opacity only). `pulse` is off once a paste is being read, so the
+ * behind it, in step (5 s a cycle, transform and opacity only). `pulse` is off once a paste is being read, so the
  * circle is back at its size before it morphs. Both give way while the button is pressed and while it shakes, and
  * neither runs under reduced motion.
  */

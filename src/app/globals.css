@@ -76,8 +76,8 @@
   --animate-swap-in: swap-in var(--duration-base) var(--ease-ancoro) backwards;
   /* The Paste circle breathes: a soft halo grows out from behind it and fades, and the circle swells a little with
      it. Slow, in step, and only while idle. */
-  --animate-breathe: breathe 3.6s ease-in-out infinite;
-  --animate-swell: swell 3.6s ease-in-out infinite;
+  --animate-breathe: breathe 5s ease-in-out infinite;
+  --animate-swell: swell 5s ease-in-out infinite;
   /* A check that replaces an icon. */
   --animate-pop: pop 250ms var(--ease-ancoro);
 
