@@ -7,13 +7,16 @@ export type PasteOutcome =
   | { kind: "invalid" }
   | { kind: "unreadable" };
 
-/** A transaction, address or ENS name opens its page, nothing at all means typing, anything else is not recognised. */
+/** A transaction (from an EVM explorer: on its network), address or ENS name opens its page, nothing at all means typing, anything else is not recognised. */
 export function decidePaste(text: string | null | undefined): PasteOutcome {
   if (!text?.trim()) return { kind: "empty" };
   const pasted = detectPaste(text);
   if (!pasted.ok) return { kind: "invalid" };
   // A name can hold emoji and the like: the page decodes what is encoded here.
-  return { kind: "open", href: `/${pasted.kind === "tx" ? "tx" : "address"}/${encodeURIComponent(pasted.id)}` };
+  if (pasted.kind !== "tx") return { kind: "open", href: `/address/${encodeURIComponent(pasted.id)}` };
+  // An explorer link names the network, so the page asks that one only.
+  const network = pasted.explorer ? `?chain=${pasted.chain}` : "";
+  return { kind: "open", href: `/tx/${encodeURIComponent(pasted.id)}${network}` };
 }
 
 /** What reading the clipboard gave: its text (possibly ""), or that the browser refused or failed to read it. */

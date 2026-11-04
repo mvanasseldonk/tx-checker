@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { AddressChain } from "@/lib/detect";
 import type { Candidate } from "@/lib/address/types";
 import { formatAmount, formatTime } from "@/lib/format";
 import { staggerDelay } from "@/lib/motion";
@@ -12,10 +13,12 @@ import { staggerDelay } from "@/lib/motion";
  * another, each time it opens.
  */
 export function NotThisOne({
+  chain,
   candidates,
   currentId,
   initialOpen = false,
 }: {
+  chain: AddressChain;
   candidates: Candidate[];
   currentId?: string;
   initialOpen?: boolean;
@@ -42,7 +45,7 @@ export function NotThisOne({
               className="motion-safe:animate-rise-fast"
               style={{ "--delay": `${staggerDelay(index, { step: 30, cap: 7 })}ms` } as React.CSSProperties}
             >
-              <Row candidate={candidate} current={candidate.id === currentId} />
+              <Row chain={chain} candidate={candidate} current={candidate.id === currentId} />
             </li>
           ))}
         </ul>
@@ -51,11 +54,12 @@ export function NotThisOne({
   );
 }
 
-function Row({ candidate, current }: { candidate: Candidate; current: boolean }) {
+function Row({ chain, candidate, current }: { chain: AddressChain; candidate: Candidate; current: boolean }) {
   const { id, direction, time, amount } = candidate;
   return (
     <Link
-      href={`/tx/${id}`}
+      // An Ethereum address has Ethereum transactions: the page then asks that network only.
+      href={`/tx/${id}${chain === "eth" ? "?chain=eth" : ""}`}
       aria-current={current || undefined}
       className="flex min-h-14 items-center justify-between gap-4 px-4 py-2 text-[15px] active:bg-ground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink"
     >

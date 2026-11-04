@@ -1,11 +1,11 @@
 import type { Candidate } from "./address/types";
-import type { Chain } from "./detect";
+import type { AddressChain } from "./detect";
 
 /** How long an address is watched for a new transaction before the page stops and waits for a tap. */
 export const WATCH_MINUTES = 30;
 
 /** Seconds between lookups of an address: one block on ETH, SOL spared Helius credits, BTC blocks take ~10 min. */
-export const WATCH_SECONDS: Record<Chain, number> = { eth: 12, sol: 5, btc: 30 };
+export const WATCH_SECONDS: Record<AddressChain, number> = { eth: 12, sol: 5, btc: 30 };
 
 // A newest transaction older than this is not what somebody who just paid is waiting for.
 const RECENT_SECONDS = 60 * 60;

@@ -2,6 +2,9 @@ import type { Chain } from "./detect";
 
 const EXPLORERS: Record<Chain, { name: string; txUrl: string }> = {
   eth: { name: "Etherscan", txUrl: "https://etherscan.io/tx/" },
+  base: { name: "Basescan", txUrl: "https://basescan.org/tx/" },
+  arb: { name: "Arbiscan", txUrl: "https://arbiscan.io/tx/" },
+  op: { name: "Optimistic Etherscan", txUrl: "https://optimistic.etherscan.io/tx/" },
   sol: { name: "Solscan", txUrl: "https://solscan.io/tx/" },
   btc: { name: "mempool.space", txUrl: "https://mempool.space/tx/" },
 };

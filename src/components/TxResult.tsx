@@ -16,20 +16,24 @@ const GREEN = "#0B6B45";
 const AMBER = "#B86A00";
 const RED = "#A3231B";
 
-const NATIVE: Record<Chain, string> = { eth: "ETH", sol: "SOL", btc: "BTC" };
+const NATIVE: Record<Chain, string> = { eth: "ETH", base: "ETH", arb: "ETH", op: "ETH", sol: "SOL", btc: "BTC" };
 const GONE = "#5B6472";
-// Seconds between lookups: one block on ETH and SOL. Bitcoin blocks take ~10 min, so every 30 s.
-const BLOCK_SECONDS: Record<Chain, number> = { eth: 12, sol: 2, btc: 30 };
+// Seconds between lookups: one block on ETH and SOL. Bitcoin blocks take ~10 min, so every 30 s. The L2s make a block
+// in 2 s or less, but 5 s is often enough and spares the requests.
+const BLOCK_SECONDS: Record<Chain, number> = { eth: 12, base: 5, arb: 5, op: 5, sol: 2, btc: 30 };
 const MINUTES_PER_BLOCK = 10;
 
 // No transaction yet: how long to keep looking, and what to say meanwhile.
 const UNKNOWN = {
   seconds: 120,
-  looking: { word: "Not found", line: "Other chain? We only do ETH, SOL and BTC" },
-  stopped: { word: "Not found", line: "Other chain? We only do ETH, SOL and BTC" },
+  looking: { word: "Not found", line: "Other chain? We do ETH, Base, Arbitrum, Optimism, SOL and BTC" },
+  stopped: { word: "Not found", line: "Other chain? We do ETH, Base, Arbitrum, Optimism, SOL and BTC" },
 };
 const NOT_FOUND = {
   eth: UNKNOWN,
+  base: UNKNOWN,
+  arb: UNKNOWN,
+  op: UNKNOWN,
   btc: UNKNOWN,
   // Solana has no queue: a transaction that never lands expires with its blockhash.
   sol: {
@@ -64,6 +68,7 @@ export function TxResult({
   ens,
   waiting = "Waiting to be included",
   arrived = false,
+  logo = true,
   below,
 }: {
   chain: Chain;
@@ -73,6 +78,8 @@ export function TxResult({
   ens?: Ens;
   waiting?: string;
   arrived?: boolean;
+  // False when no network has the transaction: the header then shows no network.
+  logo?: boolean;
   below?: React.ReactNode;
 }) {
   const label = (ens || direction) && (
@@ -92,7 +99,7 @@ export function TxResult({
   }
   if (status.kind === "notFound") {
     return (
-      <Frame chain={chain} pasteAgain>
+      <Frame chain={logo ? chain : undefined} pasteAgain>
         {label}
         <StillLooking refreshSeconds={BLOCK_SECONDS[chain]} {...NOT_FOUND[chain]} />
         {below}

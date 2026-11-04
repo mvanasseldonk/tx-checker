@@ -11,6 +11,15 @@ describe("decidePaste", () => {
     expect(decidePaste(`  ${BTC_TX}\n`)).toEqual({ kind: "open", href: `/tx/${BTC_TX}` });
   });
 
+  it("opens a transaction from an explorer link on that network only", () => {
+    expect(decidePaste(`https://basescan.org/tx/${ETH_TX}`)).toEqual({ kind: "open", href: `/tx/${ETH_TX}?chain=base` });
+    expect(decidePaste(`https://arbiscan.io/tx/${ETH_TX}`)).toEqual({ kind: "open", href: `/tx/${ETH_TX}?chain=arb` });
+    expect(decidePaste(`https://optimistic.etherscan.io/tx/${ETH_TX}`)).toEqual({ kind: "open", href: `/tx/${ETH_TX}?chain=op` });
+    expect(decidePaste(`https://etherscan.io/tx/${ETH_TX}`)).toEqual({ kind: "open", href: `/tx/${ETH_TX}?chain=eth` });
+    expect(decidePaste(`https://sepolia.basescan.org/tx/${ETH_TX}`)).toEqual({ kind: "invalid" });
+    expect(decidePaste(`https://basescan.org/address/${ETH_ADDRESS}`)).toEqual({ kind: "invalid" });
+  });
+
   it("opens an address", () => {
     expect(decidePaste(ETH_ADDRESS)).toEqual({ kind: "open", href: `/address/${ETH_ADDRESS}` });
   });

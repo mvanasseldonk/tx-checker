@@ -1,10 +1,10 @@
-import type { Chain } from "../detect";
+import type { AddressChain } from "../detect";
 import { eurPrice, type Coin } from "../prices";
 import { WRAPPED_SOL } from "../sol";
 import type { TxAmount, TxStatus } from "../status";
 import type { Candidate } from "./types";
 
-const NATIVE: Record<Chain, Coin> = { eth: "ethereum", sol: "solana", btc: "bitcoin" };
+const NATIVE: Record<AddressChain, Coin> = { eth: "ethereum", sol: "solana", btc: "bitcoin" };
 
 /**
  * A transaction found through an address that was Received says what arrived at that address,
@@ -22,7 +22,7 @@ export function withReceivedAmount(status: TxStatus, address: string, amount: Tx
 
 /** The status with what the candidate received in it, when it is a Received one with an amount. */
 export async function showReceived(
-  chain: Chain,
+  chain: AddressChain,
   address: string,
   status: TxStatus,
   candidate: Candidate,

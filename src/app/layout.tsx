@@ -3,7 +3,7 @@ import { NAME, SITE_URL, TAGLINE } from "@/components/brand/config";
 import { FONT_VARIABLES } from "./fonts";
 import "./globals.css";
 
-const DESCRIPTION = `${NAME} tells you if your transaction went through. Paste an ETH, SOL or BTC transaction or address and follow it until it is final.`;
+const DESCRIPTION = `${NAME} tells you if your transaction went through. Paste an ETH, SOL or BTC transaction or address, or a Base, Arbitrum or Optimism transaction, and follow it until it is final.`;
 
 export const metadata: Metadata = {
   // Absolute URLs for the share image and the like. Previews keep Next's default, their own URL.

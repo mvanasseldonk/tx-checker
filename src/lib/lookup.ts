@@ -7,7 +7,10 @@ import type { TxStatus } from "./status";
 
 /** Looks up one transaction on its chain. */
 export const LOOKUP: Record<Chain, (id: string) => Promise<TxStatus>> = {
-  eth: (id) => lookupEth(id as Hash),
+  eth: (id) => lookupEth("eth", id as Hash),
+  base: (id) => lookupEth("base", id as Hash),
+  arb: (id) => lookupEth("arb", id as Hash),
+  op: (id) => lookupEth("op", id as Hash),
   sol: lookupSol,
   btc: lookupBtc,
 };
