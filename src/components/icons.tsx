@@ -51,6 +51,16 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+export function HelpIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5" />
+      <path d="M12 16.5h.01" />
+    </Svg>
+  );
+}
+
 export function LockIcon(props: IconProps) {
   return (
     <Svg {...props}>
