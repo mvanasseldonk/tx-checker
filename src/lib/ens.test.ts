@@ -65,6 +65,17 @@ describe("resolveEns", () => {
     }
   });
 
+  it("never logs the URL of a failed lookup, as it holds the API key", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    log.mockClear();
+    const failure = new HttpRequestError({ url: "https://rpc.test/v2/SECRET", status: 503 });
+    await resolveEns("asseldonk.eth", clientThat(async () => {
+      throw failure;
+    }));
+    expect(log).toHaveBeenCalledOnce();
+    expect(JSON.stringify(log.mock.calls)).not.toContain("SECRET");
+  });
+
   it("does not look up what is not a name", async () => {
     const client = clientThat(async () => ADDRESS);
     for (const input of ["foo bar.eth", "foo\nbar.eth", ".eth", "a..eth", "foo.com", "foo_bar.eth", "foo.eth/bar", ""]) {

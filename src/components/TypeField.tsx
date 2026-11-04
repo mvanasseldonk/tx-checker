@@ -31,10 +31,10 @@ export function TypeField({
     >
       <input
         type="text"
-        aria-label="Transaction hash, address or explorer link"
+        aria-label="Transaction hash, address, ENS name or explorer link"
         aria-invalid={invalid}
         aria-describedby={invalid ? "invalid" : undefined}
-        placeholder="Hash, address or ENS name"
+        placeholder="Hash, address or ENS"
         autoFocus
         autoCapitalize="off"
         autoCorrect="off"

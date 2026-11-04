@@ -34,7 +34,7 @@ export function NothingNew({
       {/* The button sits over the circle, so the circle itself stays put when it appears. */}
       <div className="relative rounded-full transition-transform has-[button:active]:scale-95">
         <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={0.11} following still={stopped} landing>
-          <span className="font-mono text-[15px] text-muted">{shortAddress(address)}</span>
+          <span className="font-mono text-[15px] text-muted">{shortAddress(ens?.address ?? address)}</span>
         </Ring>
         {stopped && (
           <button

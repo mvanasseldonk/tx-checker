@@ -106,7 +106,7 @@ async function LiveAddress({
   }
   if (activity.kind === "busy") {
     return (
-      <AddressNote chain={chain} label={shortAddress(address)} ens={ens} word="Busy">
+      <AddressNote chain={chain} label={shortAddress(ens?.address ?? address)} ens={ens} word="Busy">
         This address is too busy · paste the transaction instead
       </AddressNote>
     );

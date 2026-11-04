@@ -1,4 +1,4 @@
-import { ContractFunctionRevertedError, type Address } from "viem";
+import { BaseError, ContractFunctionRevertedError, type Address } from "viem";
 import { normalize } from "viem/ens";
 import { ethClient } from "./eth";
 
@@ -43,7 +43,8 @@ export async function resolveEns(input: string, client?: EnsClient): Promise<Ens
     return address ? { kind: "address", name, address } : { kind: "none", name };
   } catch (error) {
     if (isNoAddress(error)) return { kind: "none", name };
-    console.error(`Looking up ENS name ${name} failed`, error);
+    // Only the short message: the whole error holds the RPC URL, and with it the API key.
+    console.error(`Looking up ENS name ${name} failed: ${error instanceof BaseError ? error.shortMessage : "unknown error"}`);
     return { kind: "unavailable" };
   }
 }
