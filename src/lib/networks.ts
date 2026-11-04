@@ -13,11 +13,15 @@ export const NETWORKS: Record<EvmChain, { chain: ViemChain; alchemy: string; pla
 /**
  * How long after its block an L2 transaction is expected to be final, in seconds: Ethereum has to finalize the
  * L1 block that holds the batch. Estimates; Ethereum itself is exact (see `finalizedAt`).
+ *
+ * Measured on 4 November 2026 with five blocks per network, six minutes apart, until the `finalized` tag had
+ * passed them (min, median, max in seconds): Base 798, 852, 1158; Arbitrum 1158, 1212, 1253; Optimism 1436,
+ * 1511, 1573. These are the medians, rounded.
  */
 export const SECONDS_TO_FINAL: Record<Exclude<EvmChain, "eth">, number> = {
-  base: 900,
-  arb: 1300,
-  op: 1500,
+  base: 850,
+  arb: 1210,
+  op: 1510,
 };
 
 // A transaction that is still not final when its estimate has passed is shown as one minute away.
