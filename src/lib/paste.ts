@@ -7,12 +7,13 @@ export type PasteOutcome =
   | { kind: "invalid" }
   | { kind: "unreadable" };
 
-/** A transaction or address opens its page, nothing at all means typing, anything else is not recognised. */
+/** A transaction, address or ENS name opens its page, nothing at all means typing, anything else is not recognised. */
 export function decidePaste(text: string | null | undefined): PasteOutcome {
   if (!text?.trim()) return { kind: "empty" };
   const pasted = detectPaste(text);
   if (!pasted.ok) return { kind: "invalid" };
-  return { kind: "open", href: `/${pasted.kind === "tx" ? "tx" : "address"}/${pasted.id}` };
+  // A name can hold emoji and the like: the page decodes what is encoded here.
+  return { kind: "open", href: `/${pasted.kind === "tx" ? "tx" : "address"}/${encodeURIComponent(pasted.id)}` };
 }
 
 /** What reading the clipboard gave: its text (possibly ""), or that the browser refused or failed to read it. */

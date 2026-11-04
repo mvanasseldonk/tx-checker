@@ -2,6 +2,7 @@
 
 import type { Chain } from "@/lib/detect";
 import { shortAddress } from "@/lib/format";
+import { EnsLine, type Ens } from "./EnsLine";
 import { Frame } from "./Frame";
 import { Heading } from "./Heading";
 import { Ring } from "./StatusCircle";
@@ -15,11 +16,13 @@ import { STRUGGLING, StoppedLine, useWatch } from "./Watch";
 export function NothingNew({
   chain,
   address,
+  ens,
   empty,
   below,
 }: {
   chain: Chain;
   address: string;
+  ens?: Ens;
   empty: boolean;
   below?: React.ReactNode;
 }) {
@@ -27,6 +30,7 @@ export function NothingNew({
   const stopped = watch?.stopped ?? false;
   return (
     <Frame chain={chain} pasteAgain>
+      {ens && <EnsLine ens={ens} />}
       {/* The button sits over the circle, so the circle itself stays put when it appears. */}
       <div className="relative rounded-full transition-transform has-[button:active]:scale-95">
         <Ring color="#5B6472" track="rgba(91,100,114,0.15)" progress={0.11} following still={stopped} landing>

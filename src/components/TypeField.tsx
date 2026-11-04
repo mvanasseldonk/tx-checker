@@ -34,7 +34,7 @@ export function TypeField({
         aria-label="Transaction hash, address or explorer link"
         aria-invalid={invalid}
         aria-describedby={invalid ? "invalid" : undefined}
-        placeholder="Hash, txid or address"
+        placeholder="Hash, address or ENS name"
         autoFocus
         autoCapitalize="off"
         autoCorrect="off"

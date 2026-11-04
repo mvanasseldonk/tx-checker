@@ -6,12 +6,14 @@ export type Detection =
   | { ok: true; chain: Chain; id: string }
   | { ok: false };
 
-/** What was pasted: a transaction (hash, signature, txid) or an address, on a chain. */
+/** What was pasted: a transaction (hash, signature, txid), an address or an ENS name, on a chain. */
 export type Pasted =
-  | { ok: true; kind: "tx" | "address"; chain: Chain; id: string }
+  | { ok: true; kind: "tx" | "address" | "ens"; chain: Chain; id: string }
   | { ok: false };
 
 const INVALID: Detection = { ok: false };
+
+const ENS_SUFFIX = ".eth";
 
 const ETH_HASH = /^0x[0-9a-fA-F]{64}$/;
 // Without 0x, so a bare Ethereum hash is read as Bitcoin.
@@ -68,12 +70,25 @@ export function detectAddress(input: string): Detection {
   return link?.kind === "address" ? detectOnChain(detectAddressId(link.value), link.chain) : INVALID;
 }
 
-/** A transaction or an address, whichever the input is. */
+/**
+ * A light check for an ENS name, lowercased: `.eth` after at least one label. The real rules (`normalize` of
+ * viem) are about 45 kB and run on the server only, which rejects what passes here but is not a name.
+ * Only the outer whitespace goes: `foo bar.eth` must never become `foobar.eth`, as the other detections would.
+ */
+export function detectEns(input: string): Detection {
+  const name = input.trim().toLowerCase();
+  if (name.length <= ENS_SUFFIX.length || !name.endsWith(ENS_SUFFIX) || /[\s/]/.test(name)) return INVALID;
+  return { ok: true, chain: "eth", id: name };
+}
+
+/** A transaction, an address or an ENS name, whichever the input is. */
 export function detectPaste(input: string): Pasted {
   const tx = detectTransaction(input);
   if (tx.ok) return { ...tx, kind: "tx" };
   const address = detectAddress(input);
-  return address.ok ? { ...address, kind: "address" } : { ok: false };
+  if (address.ok) return { ...address, kind: "address" };
+  const ens = detectEns(input);
+  return ens.ok ? { ...ens, kind: "ens" } : { ok: false };
 }
 
 function detectId(id: string): Detection {
