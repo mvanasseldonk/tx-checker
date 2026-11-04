@@ -139,16 +139,9 @@ function Fields({ details, notSent }: { details: TxDetails; notSent: boolean }) 
     });
   }
   if (details.from) rows.push({ label: "From", content: <Address address={details.from} /> });
-  if (amount)
-    rows.push({
-      label: "Amount",
-      content: <Money money={amount} note={notSent ? "not sent" : undefined} />,
-    });
+  if (amount) rows.push({ label: "Amount", content: <Money money={amount} note={notSent ? "not sent" : undefined} /> });
   if (fee) rows.push({ label: "Fee", content: <Money money={fee} /> });
-  rows.push({
-    label: "Time",
-    content: <span>{time === null ? "Not yet" : formatTime(time)}</span>,
-  });
+  rows.push({ label: "Time", content: <span>{time === null ? "Not yet" : formatTime(time)}</span> });
   return (
     <>
       {rows.map((row, index) => (
@@ -165,11 +158,7 @@ function Field({ label, index, children }: { label: string; index: number; child
   return (
     <div
       className="flex min-h-14 items-center justify-between gap-6 border-t border-ink/10 py-2 first:border-t-0 motion-safe:animate-rise-fast"
-      style={
-        {
-          "--delay": `${staggerDelay(index, { step: ROW_STEP_MS, lead: ROW_LEAD_MS })}ms`,
-        } as React.CSSProperties
-      }
+      style={{ "--delay": `${staggerDelay(index, { step: ROW_STEP_MS, lead: ROW_LEAD_MS })}ms` } as React.CSSProperties}
     >
       <dt className="flex-none text-[15px] text-muted">{label}</dt>
       <dd className="flex min-w-0 flex-col items-end text-right text-[15px]">{children}</dd>
