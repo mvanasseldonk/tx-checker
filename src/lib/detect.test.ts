@@ -413,3 +413,110 @@ describe("parseNetwork", () => {
     expect(parseNetwork(undefined)).toBeNull();
   });
 });
+
+describe("S19 — more explorers", () => {
+  // Blockstream.info testnet paths are already tested under "rejects testnet explorer links"
+  // for /testnet/ and /signet/; adding /liquid/ and /liquidtestnet/ here.
+  it("rejects Blockstream liquid/liquidtestnet paths", () => {
+    for (const path of ["liquid", "liquidtestnet"]) {
+      expect(detectTransaction(`https://blockstream.info/${path}/tx/${BTC_TXID}`)).toEqual({ ok: false });
+    }
+  });
+
+  it("reads a Blockstream.info mainnet tx link", () => {
+    expect(detectTransaction(`https://blockstream.info/tx/${BTC_TXID}`)).toEqual({
+      ok: true,
+      chain: "btc",
+      id: BTC_TXID,
+    });
+  });
+
+  it("reads a Solana Explorer mainnet tx link (with and without cluster)", () => {
+    expect(detectTransaction(`https://explorer.solana.com/tx/${SOL_SIG}`)).toEqual({
+      ok: true,
+      chain: "sol",
+      id: SOL_SIG,
+    });
+    expect(detectTransaction(`https://explorer.solana.com/tx/${SOL_SIG}?cluster=mainnet-beta`)).toEqual({
+      ok: true,
+      chain: "sol",
+      id: SOL_SIG,
+    });
+    expect(detectTransaction(`https://explorer.solana.com/tx/${SOL_SIG}?cluster=mainnet`)).toEqual({
+      ok: true,
+      chain: "sol",
+      id: SOL_SIG,
+    });
+  });
+
+  it("rejects Solana Explorer testnet/devnet/custom cluster links", () => {
+    for (const cluster of ["devnet", "testnet", "custom"]) {
+      expect(
+        detectTransaction(`https://explorer.solana.com/tx/${SOL_SIG}?cluster=${cluster}`),
+      ).toEqual({ ok: false });
+    }
+  });
+
+  it("reads a Blockchair Bitcoin tx link", () => {
+    expect(detectTransaction(`https://blockchair.com/bitcoin/transaction/${BTC_TXID}`)).toEqual({
+      ok: true,
+      chain: "btc",
+      id: BTC_TXID,
+    });
+    // Without protocol and www.
+    expect(detectTransaction(`blockchair.com/bitcoin/transaction/${BTC_TXID}`)).toEqual({
+      ok: true,
+      chain: "btc",
+      id: BTC_TXID,
+    });
+  });
+
+  it("reads a Blockchair Ethereum tx link", () => {
+    expect(detectTransaction(`https://blockchair.com/ethereum/transaction/${ETH_HASH}`)).toEqual({
+      ok: true,
+      chain: "eth",
+      id: ETH_HASH,
+      explorer: true,
+    });
+  });
+
+  it("rejects Blockchair testnet paths and unknown coins", () => {
+    // /bitcoin/testnet/ — "testnet" is not "transaction"
+    expect(detectTransaction(`https://blockchair.com/bitcoin/testnet/${BTC_TXID}`)).toEqual({ ok: false });
+    // Litecoin not supported
+    expect(detectTransaction(`https://blockchair.com/litecoin/transaction/${BTC_TXID}`)).toEqual({ ok: false });
+  });
+
+  it("reads Blockscout tx links for eth, base, arb, op", () => {
+    for (const [host, chain] of [
+      ["eth.blockscout.com", "eth"],
+      ["base.blockscout.com", "base"],
+      ["arbitrum.blockscout.com", "arb"],
+      ["optimism.blockscout.com", "op"],
+    ] as const) {
+      expect(detectTransaction(`https://${host}/tx/${ETH_HASH}`)).toEqual({
+        ok: true,
+        chain,
+        id: ETH_HASH,
+        explorer: true,
+      });
+      expect(detectPaste(`${host}/tx/${ETH_HASH}?utm=x#eventlog`)).toMatchObject({
+        ok: true,
+        kind: "tx",
+        chain,
+        explorer: true,
+      });
+    }
+  });
+
+  it("rejects Blockscout testnet subdomains", () => {
+    for (const host of [
+      "eth-sepolia.blockscout.com",
+      "base-sepolia.blockscout.com",
+      "arbitrum-sepolia.blockscout.com",
+      "optimism-sepolia.blockscout.com",
+    ]) {
+      expect(detectTransaction(`https://${host}/tx/${ETH_HASH}`)).toEqual({ ok: false });
+    }
+  });
+});

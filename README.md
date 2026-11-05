@@ -11,16 +11,16 @@ Ancoro follows your transaction until it's final and shows only what matters: di
 - A transaction hash, Bitcoin txid or Solana signature
 - An address, to see its latest transaction
 - An ENS name, such as `vitalik.eth`
-- A link from a block explorer
+- A link from a block explorer (Etherscan, Basescan, Arbiscan, Optimistic Etherscan, Solscan, mempool.space, Blockstream, Solana Explorer, Blockchair, or Blockscout)
 
-| Network  | Transactions | Addresses and ENS | Explorer links                 | Final after                    |
-| -------- | ------------ | ----------------- | ------------------------------ | ------------------------------ |
-| Ethereum | Yes          | Yes               | Etherscan                      | Finalized by Ethereum, ~14 min |
-| Base     | Yes          | Not yet           | Basescan                       | Finalized on Ethereum, ~14 min |
-| Arbitrum | Yes          | Not yet           | Arbiscan                       | Finalized on Ethereum, ~20 min |
-| Optimism | Yes          | Not yet           | Optimistic Etherscan           | Finalized on Ethereum, ~25 min |
-| Solana   | Yes          | Yes (no ENS)      | Solscan                        | Finalized by Solana            |
-| Bitcoin  | Yes          | Yes (no ENS)      | mempool.space                  | Six confirmations, ~1 hour     |
+| Network  | Transactions | Addresses and ENS | Explorer links                      | Final after                    |
+| -------- | ------------ | ----------------- | ----------------------------------- | ------------------------------ |
+| Ethereum | Yes          | Yes               | Etherscan, Blockchair, Blockscout   | Finalized by Ethereum, ~14 min |
+| Base     | Yes          | Not yet           | Basescan, Blockscout                | Finalized on Ethereum, ~14 min |
+| Arbitrum | Yes          | Not yet           | Arbiscan, Blockscout                | Finalized on Ethereum, ~20 min |
+| Optimism | Yes          | Not yet           | Optimistic Etherscan, Blockscout    | Finalized on Ethereum, ~25 min |
+| Solana   | Yes          | Yes (no ENS)      | Solscan, Solana Explorer            | Finalized by Solana            |
+| Bitcoin  | Yes          | Yes (no ENS)      | mempool.space, Blockstream.info, Blockchair | Six confirmations, ~1 hour     |
 
 Mainnets only. A hash doesn't say which network it's from, so Ancoro checks Ethereum, Base, Arbitrum and Optimism at once and shows the one that has it. The times for Ethereum and the L2s were measured in November 2026 and are estimates. Address and ENS support on L2s is planned in [#47](https://github.com/mvanasseldonk/tx-checker/issues/47).
 
