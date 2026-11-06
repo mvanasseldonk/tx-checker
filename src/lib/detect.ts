@@ -58,27 +58,24 @@ const BTC_BASE58_BYTES = 25;
 const BTC_BASE58_VERSIONS = [0x00, 0x05];
 const SOLANA_ADDRESS_BYTES = 32;
 
-// Mainnet explorers only: subdomains such as sepolia.etherscan.io are testnets.
-// `addressPath` is where each one keeps its address pages; the L2 explorers have none, as their addresses
-// are not supported yet (an address on Base is not the same account as the one on Ethereum).
+/** Mainnet explorers only: subdomains such as sepolia.etherscan.io are testnets. */
 const EXPLORERS: Record<string, { chain: Chain; addressPath?: string }> = {
   "etherscan.io": { chain: "eth", addressPath: "address" },
   "basescan.org": { chain: "base" },
   "arbiscan.io": { chain: "arb" },
   "optimistic.etherscan.io": { chain: "op" },
   "solscan.io": { chain: "sol", addressPath: "account" },
-  "explorer.solana.com": { chain: "sol", addressPath: "tx" },
+  "explorer.solana.com": { chain: "sol" },
   "mempool.space": { chain: "btc", addressPath: "address" },
   "blockstream.info": { chain: "btc", addressPath: "address" },
-  "blockchair.com": { chain: "btc", addressPath: "address" },
 };
 
 /** Subdomain → chain for Blockscout instances. Testnet subdomains (e.g. eth-sepolia) are not listed. */
-const BLOCKSCOUT_CHAINS: Record<string, { chain: Chain; addressPath: string }> = {
-  "eth.blockscout.com": { chain: "eth", addressPath: "tx" },
-  "base.blockscout.com": { chain: "base", addressPath: "tx" },
-  "arbitrum.blockscout.com": { chain: "arb", addressPath: "tx" },
-  "optimism.blockscout.com": { chain: "op", addressPath: "tx" },
+const BLOCKSCOUT_CHAINS: Record<string, { chain: Chain }> = {
+  "eth.blockscout.com": { chain: "eth" },
+  "base.blockscout.com": { chain: "base" },
+  "arbitrum.blockscout.com": { chain: "arb" },
+  "optimism.blockscout.com": { chain: "op" },
 };
 
 /** Coin name → chain for Blockchair URLs: `/bitcoin/transaction/<id>` → btc, `/ethereum/transaction/<id>` → eth. */
@@ -215,7 +212,7 @@ function parseExplorerLink(text: string): ExplorerLink | null {
 
   const [, segment, value] = match;
   const chain = explorer ? explorer.chain : blockscout.chain;
-  const addressPath = explorer?.addressPath ?? blockscout?.addressPath;
+  const addressPath = explorer?.addressPath;
   const kind = segment === "tx" ? "tx" : segment === addressPath ? "address" : null;
   if (!kind) return null;
   try {
