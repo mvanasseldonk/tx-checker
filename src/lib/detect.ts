@@ -83,7 +83,7 @@ const BLOCKCHAIR_CHAINS: Record<string, Chain> = {
   bitcoin: "btc",
   ethereum: "eth",
 };
-const SOLSCAN_MAINNET_CLUSTERS = new Set(["mainnet", "mainnet-beta"]);
+const SOLANA_MAINNET_CLUSTERS = new Set(["mainnet", "mainnet-beta"]);
 
 /**
  * Recognises a pasted Ethereum hash, Bitcoin txid, Solana signature or explorer link to one (Etherscan, Basescan,
@@ -208,7 +208,7 @@ function parseExplorerLink(text: string): ExplorerLink | null {
   if (!explorer && !blockscout || !match) return null;
 
   const cluster = url.searchParams.get("cluster");
-  if (explorer && explorer.chain === "sol" && cluster && !SOLSCAN_MAINNET_CLUSTERS.has(cluster)) return null;
+  if (explorer && explorer.chain === "sol" && cluster && !SOLANA_MAINNET_CLUSTERS.has(cluster)) return null;
 
   const [, segment, value] = match;
   const chain = explorer ? explorer.chain : blockscout.chain;
