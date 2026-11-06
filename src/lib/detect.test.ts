@@ -481,8 +481,10 @@ describe("S19 — more explorers", () => {
   });
 
   it("rejects Blockchair testnet paths and unknown coins", () => {
-    // /bitcoin/testnet/ — "testnet" is not "transaction"
-    expect(detectTransaction(`https://blockchair.com/bitcoin/testnet/${BTC_TXID}`)).toEqual({ ok: false });
+    // Bitcoin testnet (segment "testnet" ≠ "transaction")
+    expect(detectTransaction(`https://blockchair.com/bitcoin/testnet/transaction/${BTC_TXID}`)).toEqual({ ok: false });
+    // Ethereum Sepolia (coin name not in BLOCKCHAIR_CHAINS)
+    expect(detectTransaction(`https://blockchair.com/ethereum/sepolia/transaction/${ETH_HASH}`)).toEqual({ ok: false });
     // Litecoin not supported
     expect(detectTransaction(`https://blockchair.com/litecoin/transaction/${BTC_TXID}`)).toEqual({ ok: false });
   });
